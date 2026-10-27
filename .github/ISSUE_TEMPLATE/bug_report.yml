@@ -1,0 +1,61 @@
+name: Bug report
+description: Something does not work in WeakAuras Simple Remastered
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting! A few details help a lot to find the problem.
+        Please report problems of **this version** here, not to the original WeakAuras authors.
+  - type: dropdown
+    id: realm
+    attributes:
+      label: Realm
+      options:
+        - Conquest of Azeroth (CoA)
+        - Classless
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Addon version
+      description: In the AddOns list, or in `Interface\AddOns\WeakAuras\WeakAuras.toc` (line `X-Simple-Remastered-Version`).
+      placeholder: "0.2"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: |
+        1. /wa -> New Aura -> Quick Setup
+        2. Proc -> A buff pops up on me -> Choose... -> ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error message
+      description: |
+        If there was a Lua error, copy it here. With the Swatter addon type `/swat`, otherwise turn on errors with
+        `/console scriptErrors 1`. The first lines with file name and line number are the most important.
+      render: text
+  - type: input
+    id: aura
+    attributes:
+      label: Which aura / spell / buff?
+      description: Name and, if you know it, spell ID (shown in the Choose... list).
+  - type: textarea
+    id: export
+    attributes:
+      label: Aura export string (optional)
+      description: Right click the aura in the list -> Export -> copy the string here.
+      render: text
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot (optional)
+      description: Drag and drop an image here.
