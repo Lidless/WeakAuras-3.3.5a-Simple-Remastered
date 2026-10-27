@@ -19,6 +19,8 @@ guided setup that works for every class, race and build.
 - **Per-character auras:** all auras are stored for the whole account, but a new aura only loads on the
   character that created it. One tick in the *When* tab extends it to other characters.
 - **Manual role:** choose Tank / DPS / Healer per character (default DPS, with a reminder until you choose).
+  If [Threat Plates (Grimfall edition)](https://github.com/Lidless/TidyPlates_ThreatPlates-3.3.5a-Remastered_Grimfall)
+  is installed, the role is **kept in sync** with it in both directions.
 - Custom class and race tokens are accepted everywhere.
 - Old auras that used the class condition are moved to the characters of that class the first time
   each of them logs in.
@@ -34,6 +36,7 @@ guided setup that works for every class, race and build.
 - **Choose instead of typing:** every character quietly learns its own buffs, debuffs and procs
   (also the ones from Grimfall runes) and its own DoTs on the target. Pick them from a list with icons,
   together with the spellbook and usable items. Anything missing can be added by hand.
+- **Automatic proc bar:** one bar that shows every proc as it pops up; new procs are added by themselves.
 - 10 ready colors, fade in / fade out by default, glow on procs by default.
 - The full original editor is still there: tick **Advanced options** above the tabs.
 
@@ -63,6 +66,12 @@ guided setup that works for every class, race and build.
    4. **Where should it be?** A starting position.
    5. **When should it be active?** Combat, group, role, characters, name.
 4. Click **Create**, then drag the aura to its place with the mouse.
+
+### Automatic proc bar
+**New Aura → Automatic proc bar** makes one bar (above your character) that shows all your procs while they are up,
+each with its own icon, glowing. Every proc the addon learns is added to the bar by itself.
+To leave one out: open **Choose...**, right click the proc → **Hide from the automatic proc bar**.
+Each character has its own bar.
 
 ### Choose... (the list of your buffs, procs, spells and items)
 Next to every name field there is a **Choose...** button. It opens a list with icons and a search box:
@@ -103,6 +112,7 @@ Tick **Advanced options** (above the tabs) to see every original WeakAuras setti
 | `/wa` | open the editor |
 | `/wa role tank`, `/wa role dps`, `/wa role healer` | choose your role on this character (also: role button in the editor's top bar) |
 | `/wa role` | show your current role |
+| `/wa role sync on`, `/wa role sync off` | keep the role in sync with Threat Plates (on by default when it is installed) |
 | `/wa minimap` | show / hide the minimap icon |
 | `/wa help` | list of commands |
 

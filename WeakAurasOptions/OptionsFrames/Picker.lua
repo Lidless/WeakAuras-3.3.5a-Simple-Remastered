@@ -66,6 +66,7 @@ local function describe(entry)
   if entry.duration and entry.duration > 0 then tinsert(parts, ("%ds"):format(entry.duration)) end
   if entry.seen and entry.seen > 0 then tinsert(parts, L["seen %dx"]:format(entry.seen)) end
   if entry.manual then tinsert(parts, L["added by hand"]) end
+  if entry.noAuto then tinsert(parts, L["not on auto bar"]) end
   if entry.pet then tinsert(parts, L["pet"]) end
   if entry.info then tinsert(parts, entry.info) end
   return #parts > 0 and (" |cff999999(" .. table.concat(parts, ", ") .. ")|r") or ""
@@ -153,6 +154,16 @@ local function CreatePicker()
         disabled = kind == entry.kind,
         func = function()
           Learning().SetKind(entry.key, kind)
+          fillList()
+        end,
+      })
+    end
+    if entry.kind == "proc" and entry.spellId then
+      tinsert(menu, {
+        text = entry.noAuto and L["Show on the automatic proc bar"] or L["Hide from the automatic proc bar"],
+        notCheckable = true,
+        func = function()
+          Learning().SetNoAuto(entry.key, not entry.noAuto)
           fillList()
         end,
       })

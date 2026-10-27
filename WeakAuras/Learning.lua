@@ -24,6 +24,7 @@ Private.Learning = Learning
 
 local UnitAura, UnitIsUnit, GetTime, GetSpellInfo, time = UnitAura, UnitIsUnit, GetTime, GetSpellInfo, time
 local pairs, ipairs, tonumber, tostring, type, next = pairs, ipairs, tonumber, tostring, type, next
+local sort = table.sort
 
 -- categories (kind)
 --   proc        short buff on me that I did not cast directly (procs, rune effects)
@@ -54,6 +55,8 @@ local function store()
   info.learned = info.learned or {}
   return info.learned
 end
+
+local scheduleAutoUpdate -- defined below
 
 local function classify(filter, unit, duration, caster, name)
   if unit == "target" then
@@ -123,8 +126,10 @@ local function record(unit, filter, index)
   local castAt = recentCasts[name]
   if not entry.kind then
     entry.kind = classify(filter, unit, duration, caster, name)
+    if entry.kind == "proc" then scheduleAutoUpdate() end
   elseif filter == "HELPFUL" and unit == "player" and castAt and GetTime() - castAt <= CAST_WINDOW and entry.kind == "proc" then
     entry.kind = "mybuff"
+    scheduleAutoUpdate()
   end
   if duration and duration > 0 then entry.duration = duration end
   -- count each aura once per appearance, not on every UNIT_AURA
@@ -189,6 +194,7 @@ function Learning.GetEntries(kind)
         duration = entry.duration,
         seen = entry.seen or 0,
         manual = entry.manual,
+        noAuto = entry.noAuto,
       }
     end
   end
@@ -204,12 +210,89 @@ function Learning.SetKind(key, kind)
   if list and list[key] then
     list[key].userKind = kind
   end
+  scheduleAutoUpdate()
 end
 
 function Learning.Remove(key)
   local list = store()
   if list then list[key] = nil end
+  scheduleAutoUpdate()
 end
+
+--- keep a proc off the automatic proc bar (it stays in the list)
+function Learning.SetNoAuto(key, noAuto)
+  local list = store()
+  if list and list[key] then
+    list[key].noAuto = noAuto and true or nil
+  end
+  scheduleAutoUpdate()
+end
+
+---------------------------------------------------------------------------
+-- Automatic proc bar
+-- An aura with data.simpleAuto == "procs" shows every proc of the list (one icon each).
+-- Its spell ID list is refreshed here whenever the list changes.
+---------------------------------------------------------------------------
+
+function Learning.GetAutoProcIds()
+  local ids = {}
+  for _, entry in ipairs(Learning.GetEntries("proc")) do
+    if entry.spellId and not entry.noAuto then
+      ids[#ids + 1] = tostring(entry.spellId)
+    end
+  end
+  sort(ids)
+  return ids
+end
+
+local function boundToMe(data)
+  local load = data.load
+  if not load or load.use_characters == nil then return true end
+  local key = Private.Grimfall and Private.Grimfall.CharacterKey()
+  return key and load.characters and load.characters.multi and load.characters.multi[key] or false
+end
+
+function Learning.UpdateAutoAuras()
+  local db = Private.db
+  if not db or not db.displays then return end
+  local ids
+  for _, data in pairs(db.displays) do
+    if data.simpleAuto == "procs" and boundToMe(data) and data.triggers and data.triggers[1] then
+      ids = ids or Learning.GetAutoProcIds()
+      -- never leave the list empty: an empty list would match every buff
+      local wanted = #ids > 0 and ids or { "0" }
+      local trigger = data.triggers[1].trigger
+      local current = table.concat(trigger.auraspellids or {}, ",")
+      if current ~= table.concat(wanted, ",") then
+        trigger.useName = false
+        trigger.useExactSpellId = true
+        trigger.auraspellids = CopyTable(wanted)
+        WeakAuras.Add(data)
+      end
+    end
+  end
+end
+
+local updateFrame = CreateFrame("Frame")
+updateFrame:Hide()
+local updateAt = 0
+updateFrame:SetScript("OnUpdate", function(self)
+  if GetTime() >= updateAt then
+    self:Hide()
+    if WeakAuras.IsLoginFinished and WeakAuras.IsLoginFinished() then
+      Learning.UpdateAutoAuras()
+    else
+      updateAt = GetTime() + 2
+      self:Show()
+    end
+  end
+end)
+
+scheduleAutoUpdate = function()
+  updateAt = GetTime() + 0.5
+  updateFrame:Show()
+end
+Learning.ScheduleAutoUpdate = function() scheduleAutoUpdate() end
 
 --- add by name or spell id; returns the entry or nil, error text
 function Learning.AddManual(text, kind)
@@ -242,6 +325,7 @@ function Learning.AddManual(text, kind)
   entry.userKind = kind
   entry.manual = true
   list[key] = entry
+  scheduleAutoUpdate()
   return entry
 end
 
@@ -360,5 +444,6 @@ frame:SetScript("OnEvent", function(self, event, unit, spellName)
     scan("target")
   else
     scan("player")
+    scheduleAutoUpdate()
   end
 end)

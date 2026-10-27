@@ -461,6 +461,24 @@ function OptionsPrivate.GetSimpleTriggerOptions(data)
   local kind = triggerKind(data)
   local t = kind and data.triggers[1].trigger
 
+  if data.simpleAuto == "procs" then
+    args.info = {
+      type = "description", order = 1, width = WeakAuras.doubleWidth, fontSize = "medium",
+      name = function()
+        local Learning = OptionsPrivate.Private.Learning
+        local count = Learning and #Learning.GetAutoProcIds() or 0
+        return L["This is the automatic proc bar: it shows every proc in your learned list (%d now). New procs are added by themselves. To leave one out, right click it in the Choose... list and pick \"Hide from the automatic proc bar\"."]:format(count)
+      end,
+    }
+    args.open = {
+      type = "execute", name = L["Open the list"], order = 2, width = WeakAuras.normalWidth,
+      func = function()
+        OptionsPrivate.OpenPicker(OptionsPrivate.PickerCategories.proc, function() end, L["Your procs"])
+      end,
+    }
+    return { type = "group", name = L["Trigger"], order = 1, args = args }
+  end
+
   if not kind then
     args.info = {
       type = "description", order = 1, width = WeakAuras.doubleWidth, fontSize = "medium",

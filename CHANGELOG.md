@@ -3,6 +3,14 @@
 Based on WeakAuras WotLK 5.22.0 (3.3.5a backport by NoM0Re, tag `5.22.0-39c2aca9`).
 Grimfall & Classless compatible by Lidless.
 
+## 0.3 – 2026-10-27
+
+### Added
+- **Role sync with Threat Plates (Grimfall edition):** changing the role in either addon changes it in the other;
+  at login a role chosen in Threat Plates wins. `/wa role sync on|off`. Only one "choose a role" reminder.
+- **Automatic proc bar** (New Aura → Automatic proc bar): shows every learned proc, new procs are added by themselves;
+  right click a proc in the Choose... list to hide it from the bar.
+
 ## 0.2 – 2026-10-27
 
 ### Added
@@ -38,6 +46,6 @@ Grimfall & Classless compatible by Lidless.
 - Footer reduced to **Credits** and **Found a Bug?** (this repository's issues).
 
 ## Planned
-- Automatic auras: auto-proc bar, auto-cooldown bar, missing buff warning.
+- Automatic cooldown bar and missing buff warning (if they turn out to be needed).
 - "Combat & group" Quick Setup category (threat, cast bars, boss mod timers).
 - Simple tabs for groups.

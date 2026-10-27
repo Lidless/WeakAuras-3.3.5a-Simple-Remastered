@@ -1054,3 +1054,87 @@ function OptionsPrivate.QuickSetup(frame, noConstruct)
   quickSetup = quickSetup or (not noConstruct and CreateQuickSetup(frame))
   return quickSetup
 end
+
+---------------------------------------------------------------------------
+-- Automatic proc bar: one bar that shows every proc of the learned list
+---------------------------------------------------------------------------
+
+local function boundToCurrent(data)
+  local load = data.load
+  if not load or load.use_characters == nil then return true end
+  local key = OptionsPrivate.Private.Grimfall.CharacterKey()
+  return key and load.characters and load.characters.multi and load.characters.multi[key] or false
+end
+
+function OptionsPrivate.CreateAutoProcBar()
+  local Learning = OptionsPrivate.Private.Learning
+  -- one bar per character is enough
+  for id, data in pairs(WeakAurasSaved.displays or {}) do
+    if data.simpleAuto == "procs" and boundToCurrent(data) then
+      OptionsPrivate.PickAndEditDisplay(data.parent or id)
+      WeakAuras.prettyPrint(L["This character already has an automatic proc bar: %s"]:format(id))
+      return
+    end
+  end
+
+  local ids = Learning and Learning.GetAutoProcIds() or {}
+  local group = {
+    id = OptionsPrivate.Private.FindUnusedId(L["Auto procs"]),
+    regionType = "dynamicgroup",
+    grow = "HORIZONTAL",
+    align = "CENTER",
+    centerType = "LR",
+    space = 4,
+    selfPoint = "CENTER",
+    anchorPoint = "CENTER",
+    anchorFrameType = "SCREEN",
+    xOffset = 0,
+    yOffset = 150,
+  }
+  WeakAuras.NewAura(group, "dynamicgroup")
+
+  local glow = { type = "subglow" }
+  local glowType = OptionsPrivate.Private.subRegionTypes and OptionsPrivate.Private.subRegionTypes.subglow
+  local defaults = glowType and glowType.default
+  if type(defaults) == "function" then defaults = defaults("icon") end
+  if type(defaults) == "table" then
+    for k, v in pairs(defaults) do glow[k] = v end
+  end
+  glow.glow = true
+
+  local icons = {
+    id = OptionsPrivate.Private.FindUnusedId(L["Auto procs (icons)"]),
+    regionType = "icon",
+    simpleAuto = "procs",
+    width = 44,
+    height = 44,
+    triggers = {
+      {
+        trigger = {
+          type = "aura2",
+          unit = "player",
+          debuffType = "HELPFUL",
+          useName = false,
+          useExactSpellId = true,
+          auraspellids = #ids > 0 and ids or { "0" }, -- never empty: an empty list would match every buff
+          matchesShowOn = "showOnActive",
+          showClones = true,
+          unitExists = false,
+        },
+        untrigger = {},
+      },
+    },
+    subRegions = { glow },
+    animation = {
+      start = { type = "preset", preset = "fade", duration_type = "seconds", easeType = "none", easeStrength = 3 },
+      main = { type = "none", duration_type = "seconds", easeType = "none", easeStrength = 3 },
+      finish = { type = "preset", preset = "fade", duration_type = "seconds", easeType = "none", easeStrength = 3 },
+    },
+  }
+  WeakAuras.NewAura(icons, "icon", group.id)
+  if #ids == 0 then
+    WeakAuras.prettyPrint(L["Automatic proc bar created. No procs learned yet: play a little, procs are added to the bar by themselves."])
+  else
+    WeakAuras.prettyPrint(L["Automatic proc bar created with %d procs. New procs are added by themselves; hide one with right click in the Choose... list."]:format(#ids))
+  end
+end

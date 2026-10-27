@@ -191,6 +191,7 @@ function Private.PrintHelp()
   print(L["/wa - Open the editor. New auras: New Aura -> Quick Setup"])
   print(L["/wa minimap - Toggle the minimap icon"])
   print(L["/wa role tank | dps | healer - Choose your role for this character"])
+  print(L["/wa role sync on | off - Keep the role in sync with Threat Plates"])
   print(L["/wa pstart - Start profiling. Optionally include a duration in seconds after which profiling automatically stops. To profile the next combat/encounter, pass a \"combat\" or \"encounter\" argument."])
   print(L["/wa pstop - Finish profiling"])
   print(L["/wa pprint - Show the results from the most recent profiling"])
@@ -222,7 +223,12 @@ function SlashCmdList.WEAKAURAS(input)
     WeakAuras.RealTimeProfilingWindow:Toggle()
   elseif msg == "role" then
     -- Grimfall: manual Tank / DPS / Healer role
-    if args[1] then
+    if args[1] == "sync" then
+      if args[2] == "on" or args[2] == "off" then
+        Private.Grimfall.SetRoleSync(args[2] == "on")
+      end
+      Private.Grimfall.PrintRole()
+    elseif args[1] then
       if Private.Grimfall.SetPlayerRole(args[1]) then
         Private.Grimfall.PrintRole()
       else

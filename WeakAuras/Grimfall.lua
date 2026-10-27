@@ -214,6 +214,60 @@ function Grimfall.GetPlayerRole()
 end
 WeakAuras.GetPlayerRole = Grimfall.GetPlayerRole
 
+---------------------------------------------------------------------------
+-- Role sync with Tidy Plates: Threat Plates (Grimfall edition by Lidless)
+-- Both addons use the same Tank / DPS / Healer choice. Nothing has to be changed in
+-- Threat Plates: we use its TidyPlatesThreat:GetRole() / :SetRole(role, silent) and
+-- db.char.roleChosen, and hook :SetRole to follow changes made there.
+---------------------------------------------------------------------------
+
+local toThreatPlates = { tank = "TANK", dps = "DPS", healer = "HEALER" }
+local fromThreatPlates = { TANK = "tank", DPS = "dps", HEALER = "healer" }
+local syncing = false
+
+local function threatPlates()
+  local tp = _G.TidyPlatesThreat
+  if type(tp) == "table" and type(tp.SetRole) == "function" and type(tp.GetRole) == "function"
+     and tp.db and tp.db.char then
+    return tp
+  end
+end
+
+function Grimfall.IsRoleSyncEnabled()
+  local db = getDB()
+  return not (db and db.roleSync == false)
+end
+
+function Grimfall.SetRoleSync(enabled)
+  local db = getDB()
+  if db then db.roleSync = enabled and true or false end
+  if enabled then Grimfall.SyncRoleNow() end
+end
+
+function Grimfall.HasThreatPlates()
+  return threatPlates() ~= nil
+end
+
+local function setRole(role, fromThreatPlates)
+  local info = Grimfall.GetCharacterInfo()
+  if not info then return false end
+  local changed = info.role ~= role
+  info.role = role
+  if changed then
+    Private.ScanForLoads(nil, "WA_ROLE_CHANGED")
+  end
+  if Private.callbacks then
+    Private.callbacks:Fire("RoleChanged", role)
+  end
+  local tp = not fromThreatPlates and Grimfall.IsRoleSyncEnabled() and threatPlates()
+  if tp and not syncing and (tp:GetRole() ~= toThreatPlates[role] or not tp.db.char.roleChosen) then
+    syncing = true
+    pcall(tp.SetRole, tp, toThreatPlates[role], true)
+    syncing = false
+  end
+  return true
+end
+
 function Grimfall.SetPlayerRole(role)
   if type(role) ~= "string" then
     return false
@@ -222,16 +276,39 @@ function Grimfall.SetPlayerRole(role)
   if not role then
     return false
   end
-  local info = Grimfall.GetCharacterInfo()
-  if not info then return false end
-  info.role = role
-  Private.ScanForLoads(nil, "WA_ROLE_CHANGED")
-  if Private.callbacks then
-    Private.callbacks:Fire("RoleChanged", role)
-  end
-  return true
+  return setRole(role, false)
 end
 WeakAuras.SetPlayerRole = Grimfall.SetPlayerRole
+
+local hooked = false
+--- hook Threat Plates once and bring both addons to the same role
+function Grimfall.SyncRoleNow()
+  local tp = threatPlates()
+  if not tp then return end
+  if not hooked then
+    hooked = true
+    hooksecurefunc(tp, "SetRole", function(self)
+      if syncing or not Grimfall.IsRoleSyncEnabled() then return end
+      local role = fromThreatPlates[self:GetRole()]
+      if role then
+        syncing = true
+        setRole(role, true)
+        syncing = false
+      end
+    end)
+  end
+  if not Grimfall.IsRoleSyncEnabled() then return end
+  local tpChosen = tp.db.char.roleChosen
+  local tpRole = fromThreatPlates[tp:GetRole()]
+  if tpChosen and tpRole then
+    -- Threat Plates wins at login
+    if Grimfall.GetPlayerRole() ~= tpRole or not Grimfall.HasChosenRole() then
+      setRole(tpRole, true)
+    end
+  elseif Grimfall.HasChosenRole() then
+    setRole(Grimfall.GetPlayerRole(), false)
+  end
+end
 
 --- used by the role load test, accepts old WeakAuras role keys as well
 function WeakAuras.RoleMatches(current, wanted)
@@ -241,6 +318,13 @@ end
 function Grimfall.PrintRole()
   local role = Grimfall.GetPlayerRole()
   WeakAuras.prettyPrint(L["Your role: %s"]:format(Grimfall.role_types[role] or role))
+  if Grimfall.HasThreatPlates() then
+    if Grimfall.IsRoleSyncEnabled() then
+      WeakAuras.prettyPrint(L["Role is synced with Threat Plates (turn off: /wa role sync off)."])
+    else
+      WeakAuras.prettyPrint(L["Role is NOT synced with Threat Plates (turn on: /wa role sync on)."])
+    end
+  end
   if not Grimfall.HasChosenRole() then
     WeakAuras.prettyPrint(L["No role chosen for this character yet, DPS is used. Choose with: /wa role tank | dps | healer"])
   end
@@ -301,7 +385,10 @@ frame:SetScript("OnEvent", function(self, event)
   elseif event == "PLAYER_ENTERING_WORLD" then
     Grimfall.RegisterCurrentCharacter()
     registerGroupClasses()
-    if not reminded and not Grimfall.HasChosenRole() then
+    Grimfall.SyncRoleNow()
+    -- Threat Plates already reminds about the role, one reminder is enough
+    local threatPlatesReminds = Grimfall.HasThreatPlates() and Grimfall.IsRoleSyncEnabled()
+    if not reminded and not Grimfall.HasChosenRole() and not threatPlatesReminds then
       reminded = true
       WeakAuras.prettyPrint(L["No role chosen for this character yet, DPS is used. Choose with: /wa role tank | dps | healer"])
     end

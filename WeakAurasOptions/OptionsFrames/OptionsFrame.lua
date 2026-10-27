@@ -819,11 +819,20 @@ function OptionsPrivate.CreateFrame()
     roleButton:SetText(L["Role: %s"]:format(roleNames[role] or role))
     roleButton.icon:SetTexture("Interface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES")
     roleButton.icon:SetTexCoord(unpack(roleTexCoords[role] or roleTexCoords.dps))
+    local tooltip
     if Grimfall.HasChosenRole() then
-      roleButton:SetTooltip(L["Your role for this character. Click to switch Tank / DPS / Healer."])
+      tooltip = L["Your role for this character. Click to switch Tank / DPS / Healer."]
     else
-      roleButton:SetTooltip(L["No role chosen yet, DPS is used. Click to switch Tank / DPS / Healer."])
+      tooltip = L["No role chosen yet, DPS is used. Click to switch Tank / DPS / Healer."]
     end
+    if Grimfall.HasThreatPlates and Grimfall.HasThreatPlates() then
+      if Grimfall.IsRoleSyncEnabled() then
+        tooltip = tooltip .. "\n" .. L["Synced with Threat Plates (/wa role sync off)."]
+      else
+        tooltip = tooltip .. "\n" .. L["Not synced with Threat Plates (/wa role sync on)."]
+      end
+    end
+    roleButton:SetTooltip(tooltip)
   end
   roleButton:SetCallback("OnClick", function()
     Grimfall.SetPlayerRole(nextRole[Grimfall.GetPlayerRole()] or "dps")
@@ -835,6 +844,8 @@ function OptionsPrivate.CreateFrame()
   roleButton:SetPoint("LEFT", magnetButton.frame, "RIGHT", 10, 0)
   updateRoleButton()
   frame.roleButton = roleButton
+  -- follow role changes made elsewhere (/wa role, Threat Plates sync)
+  OptionsPrivate.Private.callbacks:RegisterCallback("RoleChanged", updateRoleButton)
 
 
   local loadProgress = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
@@ -1527,6 +1538,15 @@ function OptionsPrivate.CreateFrame()
         OptionsPrivate.QuickSetup(self):Open(self:GetTargetAura())
       end)
       containerScroll:AddChild(button)
+
+      local autoProcButton = AceGUI:Create("WeakAurasNewButton")
+      autoProcButton:SetTitle(L["Automatic proc bar"])
+      autoProcButton:SetDescription(L["One bar that shows all your procs as they pop up. New procs are added by themselves."])
+      autoProcButton:SetIcon("Interface\\Icons\\Spell_Holy_SurgeOfLight")
+      autoProcButton:SetClick(function()
+        OptionsPrivate.CreateAutoProcBar()
+      end)
+      containerScroll:AddChild(autoProcButton)
 
     end
 
