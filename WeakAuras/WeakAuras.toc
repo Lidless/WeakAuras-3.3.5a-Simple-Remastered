@@ -39,6 +39,7 @@ TimeMachine.lua
 Types_Wrath.lua
 Types.lua
 Grimfall.lua
+Learning.lua
 Prototypes.lua
 Profiling.lua
 WeakAuras.lua

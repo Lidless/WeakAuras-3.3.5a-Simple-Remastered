@@ -245,6 +245,7 @@ end
 local function resetBlock2(state)
   state.detail = nil
   state.name = ""
+  state.pickedId, state.pickedName = nil, nil
   state.showOn = "showAlways"
   state.unit = "player"
   state.powerType = UnitPowerType and UnitPowerType("player") or 0
@@ -254,6 +255,7 @@ end
 
 local function resetBlock2Details(state)
   state.name = ""
+  state.pickedId, state.pickedName = nil, nil
   state.showOn = "showAlways"
   state.unit = "player"
   state.below = 0
@@ -371,6 +373,12 @@ local function buildTrigger(state)
     for name in tostring(state.name):gmatch("[^,]+") do
       name = name:match("^%s*(.-)%s*$")
       if name ~= "" then tinsert(trigger.auranames, name) end
+    end
+    -- picked from the list: match the exact spell ID (custom Grimfall auras can share names)
+    if state.pickedId and state.pickedName == state.name then
+      trigger.useName = false
+      trigger.useExactSpellId = true
+      trigger.auraspellids = { tostring(state.pickedId) }
     end
     if c == "proc" or d == "myBuff" then
       trigger.unit, trigger.debuffType, trigger.matchesShowOn = "player", "HELPFUL", "showOnActive"
@@ -799,7 +807,51 @@ local function CreateQuickSetup(frame)
           end
           editbox(block2, nameLabel, state.name, function(value)
             state.name = value or ""
-          end, 1)
+          end, 0.7)
+          -- picker: choose from what this character has (learned auras, spellbook, items)
+          local pickerCategories
+          local cats = OptionsPrivate.PickerCategories or {}
+          if state.detail == "item" then
+            pickerCategories = cats.items
+          elseif state.detail == "spell" then
+            pickerCategories = cats.spells
+          elseif state.detail == "usable" then
+            pickerCategories = cats.usable
+          elseif state.detail == "proc" then
+            pickerCategories = cats.proc
+          elseif state.detail == "debuffOnMe" then
+            pickerCategories = cats.debuffOnMe
+          elseif state.detail == "myDebuffOnTarget" then
+            pickerCategories = cats.myDot
+          elseif state.detail == "buffOnTarget" then
+            pickerCategories = cats.buffOnTarget
+          elseif state.detail == "missingBuff" then
+            pickerCategories = cats.missing
+          else
+            pickerCategories = cats.myBuff
+          end
+          if pickerCategories and OptionsPrivate.OpenPicker then
+            local chooseButton = AceGUI:Create("Button")
+            chooseButton:SetText(L["Choose..."])
+            chooseButton:SetRelativeWidth(0.28)
+            chooseButton:SetCallback("OnClick", function()
+              OptionsPrivate.OpenPicker(pickerCategories, function(entry)
+                if entry.itemId then
+                  state.name = tostring(entry.itemId)
+                  state.pickedId, state.pickedName = nil, nil
+                elseif isCooldownLike(state) and state.detail ~= "proc" then
+                  state.name = tostring(entry.spellId or entry.name)
+                  state.pickedId, state.pickedName = nil, nil
+                else
+                  state.name = entry.name or ""
+                  state.pickedId, state.pickedName = entry.spellId, entry.name
+                end
+                state.auraNameEdited = false
+                rebuild()
+              end)
+            end)
+            track(block2, chooseButton)
+          end
           view.nameHintText = function()
             if state.name == "" then
               return "|cff999999" .. L["Type the name, then press Enter."] .. "|r"
@@ -817,6 +869,10 @@ local function CreateQuickSetup(frame)
               end
               return "|cffff4040" .. L["Unknown spell. It has to be in your spellbook, or use the spell ID."] .. "|r"
             else
+              if state.pickedId and state.pickedName == state.name then
+                local _, _, pickedIcon = GetSpellInfo(state.pickedId)
+                return "|T" .. (pickedIcon or "") .. ":16|t |cff00ff00" .. L["OK, exact match by spell ID %d"]:format(state.pickedId) .. "|r"
+              end
               local icon = auraIcon(state.name:match("^%s*([^,]-)%s*,") or state.name)
               if icon then
                 return "|T" .. icon .. ":16|t |cff00ff00" .. L["OK"] .. "|r"

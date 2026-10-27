@@ -31,6 +31,9 @@ guided setup that works for every class, race and build.
 - **Simple editor** with five short tabs: *Look, Trigger, Effects, Rules, When*.
 - **Rules** instead of the condition editor: e.g. "less than 3 seconds left → red",
   "while on cooldown → grey", "below 35% → fade out".
+- **Choose instead of typing:** every character quietly learns its own buffs, debuffs and procs
+  (also the ones from Grimfall runes) and its own DoTs on the target. Pick them from a list with icons,
+  together with the spellbook and usable items. Anything missing can be added by hand.
 - 10 ready colors, fade in / fade out by default, glow on procs by default.
 - The full original editor is still there: tick **Advanced options** above the tabs.
 
@@ -59,6 +62,26 @@ guided setup that works for every class, race and build.
    4. **Where should it be?** A starting position.
    5. **When should it be active?** Combat, group, role, characters, name.
 4. Click **Create**, then drag the aura to its place with the mouse.
+
+### Choose... (the list of your buffs, procs, spells and items)
+Next to every name field there is a **Choose...** button. It opens a list with icons and a search box:
+
+| Category | Where it comes from |
+|---|---|
+| **Procs** | short buffs on you that you did not cast yourself (procs, rune effects) |
+| **My buffs** | buffs you cast on yourself |
+| **Buffs from others** | buffs someone else put on you |
+| **Passive / permanent** | buffs without a duration (e.g. Born Hero) |
+| **Debuffs on me** | debuffs on you |
+| **My debuffs / DoTs on target** | only the debuffs **you** put on your current target |
+| **Spells with cooldown / Other spells** | your spellbook and your pet's (read when you open the list) |
+| **Usable items** | trinkets, potions and other items with a "Use:" effect, in your bags or equipped |
+
+- The aura lists fill up while you play: **a new character starts empty**, fight a little and use your abilities.
+  Each character has its own list.
+- Picked auras are matched by their **exact spell ID**, so two custom auras with the same name don't get mixed up.
+- **Right click** an entry to move it to another category (if a proc was sorted wrong) or to remove it.
+- **Not in the list?** Add it by hand at the bottom of the window (name or spell ID + category).
 
 ### Change an aura
 Click it in the list on the left. The editor has five tabs:

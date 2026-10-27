@@ -484,8 +484,17 @@ function OptionsPrivate.GetSimpleTriggerOptions(data)
     }
     args.names = {
       type = "input", name = L["Aura name or spell ID (more names: separate with commas)"],
-      order = nextOrder(), width = WeakAuras.doubleWidth,
-      get = function() return table.concat(t.auranames or {}, ", ") end,
+      order = nextOrder(), width = WeakAuras.normalWidth * 1.4,
+      get = function()
+        if t.useExactSpellId and t.auraspellids then
+          local names = {}
+          for _, id in ipairs(t.auraspellids) do
+            tinsert(names, (GetSpellInfo(tonumber(id) or 0)) or tostring(id))
+          end
+          return table.concat(names, ", ")
+        end
+        return table.concat(t.auranames or {}, ", ")
+      end,
       set = function(_, v)
         t.auranames = {}
         for name in tostring(v or ""):gmatch("[^,]+") do
@@ -493,13 +502,49 @@ function OptionsPrivate.GetSimpleTriggerOptions(data)
           if name ~= "" then tinsert(t.auranames, name) end
         end
         t.useName = true
+        t.useExactSpellId = nil
+        t.auraspellids = nil
         commit(data, true)
       end,
     }
+    args.choose = {
+      type = "execute", name = L["Choose..."], order = nextOrder(), width = WeakAuras.normalWidth * 0.6,
+      desc = L["Pick from the buffs, debuffs and procs this character has had."],
+      func = function()
+        local cats = OptionsPrivate.PickerCategories
+        local categories = t.unit == "target" and t.debuffType == "HARMFUL" and cats.myDot
+                           or t.debuffType == "HARMFUL" and cats.debuffOnMe
+                           or cats.anyBuff
+        OptionsPrivate.OpenPicker(categories, function(entry)
+          if entry.spellId then
+            t.useName = false
+            t.useExactSpellId = true
+            t.auraspellids = { tostring(entry.spellId) }
+            t.auranames = { entry.name }
+          else
+            t.useName = true
+            t.useExactSpellId = nil
+            t.auraspellids = nil
+            t.auranames = { entry.name }
+          end
+          commit(data, true)
+        end)
+      end,
+    }
+    args.exactInfo = {
+      type = "description", order = nextOrder(), width = WeakAuras.doubleWidth, fontSize = "medium",
+      name = function()
+        return "|cff00ff00" .. L["Exact match by spell ID: %s"]:format(table.concat(t.auraspellids or {}, ", ")) .. "|r"
+      end,
+      hidden = function() return not (t.useExactSpellId and t.auraspellids and #t.auraspellids > 0) end,
+    }
     args.namesWarning = {
       type = "description", order = nextOrder(), width = WeakAuras.doubleWidth, fontSize = "medium",
-      name = "|cffff4040" .. L["No name given: it would show ANY buff or debuff. Type a name."] .. "|r",
-      hidden = function() return t.auranames and #t.auranames > 0 end,
+      name = "|cffff4040" .. L["No name given: it would show ANY buff or debuff. Type a name or use Choose."] .. "|r",
+      hidden = function()
+        return (t.useName and t.auranames and #t.auranames > 0)
+            or (t.useExactSpellId and t.auraspellids and #t.auraspellids > 0)
+      end,
     }
     args.ownOnly = {
       type = "toggle", name = L["Only mine (cast by me)"], order = nextOrder(), width = WeakAuras.normalWidth,
@@ -527,7 +572,7 @@ function OptionsPrivate.GetSimpleTriggerOptions(data)
     }
   elseif kind == "spellcd" or kind == "usable" then
     args.spell = {
-      type = "input", name = L["Spell name or spell ID"], order = nextOrder(), width = WeakAuras.doubleWidth,
+      type = "input", name = L["Spell name or spell ID"], order = nextOrder(), width = WeakAuras.normalWidth * 1.4,
       get = function()
         local name = t.spellName and GetSpellInfo(t.spellName)
         return name or (t.spellName and tostring(t.spellName)) or ""
@@ -538,6 +583,17 @@ function OptionsPrivate.GetSimpleTriggerOptions(data)
           t.spellName = id
           commit(data, true)
         end
+      end,
+    }
+    args.chooseSpell = {
+      type = "execute", name = L["Choose..."], order = nextOrder(), width = WeakAuras.normalWidth * 0.6,
+      func = function()
+        OptionsPrivate.OpenPicker(kind == "usable" and OptionsPrivate.PickerCategories.usable or OptionsPrivate.PickerCategories.spells, function(entry)
+          if entry.spellId then
+            t.spellName = entry.spellId
+            commit(data, true)
+          end
+        end)
       end,
     }
     args.spellCheck = {
@@ -567,7 +623,7 @@ function OptionsPrivate.GetSimpleTriggerOptions(data)
     end
   elseif kind == "itemcd" then
     args.item = {
-      type = "input", name = L["Item name or item ID"], order = nextOrder(), width = WeakAuras.doubleWidth,
+      type = "input", name = L["Item name or item ID"], order = nextOrder(), width = WeakAuras.normalWidth * 1.4,
       get = function()
         local name = t.itemName and GetItemInfo(t.itemName)
         return name or (t.itemName and tostring(t.itemName)) or ""
@@ -578,6 +634,17 @@ function OptionsPrivate.GetSimpleTriggerOptions(data)
           t.itemName = id
           commit(data, true)
         end
+      end,
+    }
+    args.chooseItem = {
+      type = "execute", name = L["Choose..."], order = nextOrder(), width = WeakAuras.normalWidth * 0.6,
+      func = function()
+        OptionsPrivate.OpenPicker(OptionsPrivate.PickerCategories.items, function(entry)
+          if entry.itemId then
+            t.itemName = entry.itemId
+            commit(data, true)
+          end
+        end)
       end,
     }
     args.showOn = {

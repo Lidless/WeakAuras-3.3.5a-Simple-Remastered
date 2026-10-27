@@ -79,6 +79,7 @@ OptionsFrames\TexturePicker.lua
 OptionsFrames\Update.lua
 OptionsFrames\DebugLogFrame.lua
 SimpleEditor.lua
+OptionsFrames\Picker.lua
 OptionsFrames\QuickSetup.lua
 
 # Misc frames
