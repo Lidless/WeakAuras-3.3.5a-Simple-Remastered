@@ -45,9 +45,10 @@ guided setup that works for every class, race and build.
    - `WeakAurasOptions`
    - `WeakAurasArchive`
    - `WeakAurasModelPaths`
-3. If you had WeakAuras before, replace the old folders. Your auras are kept
+3. **Restart the game completely** (not just `/reload`): WoW only finds new addon files after a full restart.
+4. If you had WeakAuras before, replace the old folders. Your auras are kept
    (they live in `WTF\...\SavedVariables\WeakAuras.lua`).
-4. Optional: `WeakAurasTemplates` is not used by this version and can be deleted.
+5. Optional: `WeakAurasTemplates` is not used by this version and can be deleted.
    `WeakAurasStopMotion` (an extra texture pack) is not included; you can take it from the original release if you need it.
 
 ## How to use
