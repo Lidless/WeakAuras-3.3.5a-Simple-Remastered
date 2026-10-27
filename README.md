@@ -1,0 +1,104 @@
+# WeakAuras Simple Remastered (3.3.5a)
+
+A simplified WeakAuras for the **Grimfall** private server (WoW 3.3.5a), made for the
+**Conquest of Azeroth** realm (custom classes, backported races) and the **classless** realm.
+
+WeakAuras can show almost anything, but its editor has hundreds of settings and most of
+them depend on the ten original classes, their specs and talents. This version keeps the
+WeakAuras engine and replaces the class based parts and the long editor with a short,
+guided setup that works for every class, race and build.
+
+> This is a **modified version** of [WeakAuras WotLK](https://github.com/NoM0Re/WeakAuras-WotLK)
+> (5.22.0, 3.3.5a backport by NoM0Re). It is not the official release.
+> Please report problems with this version here, not to the original authors.
+
+## What is different
+
+**Made for Grimfall**
+- No class, spec or talent load conditions (they break on custom classes and on the classless realm).
+- **Per-character auras:** all auras are stored for the whole account, but a new aura only loads on the
+  character that created it. One tick in the *When* tab extends it to other characters.
+- **Manual role:** choose Tank / DPS / Healer per character (default DPS, with a reminder until you choose).
+- Custom class and race tokens are accepted everywhere.
+- Old auras that used the class condition are moved to the characters of that class the first time
+  each of them logs in.
+
+**Simpler to use**
+- **Quick Setup**, one page from top to bottom: *what to track → details → how it looks → where → when*.
+  A block only becomes active when the one above is answered; changing an answer resets the blocks below.
+- Categories: **Buff / Debuff**, **Proc** (a buff pops up, or an ability lights up), **Cooldown**,
+  **Resource** (health, power, combo points).
+- **Simple editor** with five short tabs: *Look, Trigger, Effects, Rules, When*.
+- **Rules** instead of the condition editor: e.g. "less than 3 seconds left → red",
+  "while on cooldown → grey", "below 35% → fade out".
+- 10 ready colors, fade in / fade out by default, glow on procs by default.
+- The full original editor is still there: tick **Advanced options** above the tabs.
+
+## Installation
+
+1. Download this repository (**Code → Download ZIP**).
+2. Copy these folders into `World of Warcraft\Interface\AddOns\`:
+   - `WeakAuras`
+   - `WeakAurasOptions`
+   - `WeakAurasArchive`
+   - `WeakAurasModelPaths`
+3. If you had WeakAuras before, replace the old folders. Your auras are kept
+   (they live in `WTF\...\SavedVariables\WeakAuras.lua`).
+4. Optional: `WeakAurasTemplates` is not used by this version and can be deleted.
+   `WeakAurasStopMotion` (an extra texture pack) is not included; you can take it from the original release if you need it.
+
+## How to use
+
+### Make an aura
+1. Type `/wa`.
+2. Click **New Aura → Quick Setup**.
+3. Fill the page from top to bottom:
+   1. **What should be tracked?** Buff / Debuff, Proc, Cooldown or Resource.
+   2. **Details**: which buff, spell or item (the name is checked while you type), or which resource.
+   3. **How should it look?** Icon, bar, text or circle; size, color, sound, glow.
+   4. **Where should it be?** A starting position.
+   5. **When should it be active?** Combat, group, role, characters, name.
+4. Click **Create**, then drag the aura to its place with the mouse.
+
+### Change an aura
+Click it in the list on the left. The editor has five tabs:
+
+| Tab | What you set there |
+|---|---|
+| **Look** | name, size, color, visibility, clock swipe and time numbers, glow, position |
+| **Trigger** | what it watches (buff name, on whom, mine only, present or missing, stacks; spell or item; power type, % limit) |
+| **Effects** | animation when it appears / while shown / when it disappears, sounds, chat message |
+| **Rules** | ready made "if this, then that" rules: change color, grey out, fade out, fade in, glow |
+| **When** | combat, group, instance type, mounted, vehicle, roles, characters |
+
+Tick **Advanced options** (above the tabs) to see every original WeakAuras setting.
+
+### Commands
+| Command | |
+|---|---|
+| `/wa` | open the editor |
+| `/wa role tank`, `/wa role dps`, `/wa role healer` | choose your role on this character (also: role button in the editor's top bar) |
+| `/wa role` | show your current role |
+| `/wa minimap` | show / hide the minimap icon |
+| `/wa help` | list of commands |
+
+### Good to know
+- A buff aura without a name would show **any** buff; the editor warns you in red if the name is empty.
+- If you edit an aura's conditions in *Advanced options*, the *Rules* tab tells you before it would replace them.
+- Import strings from other players still work; imported auras are bound to the character that imports them.
+
+## Bugs and feedback
+
+Please open an [issue](https://github.com/Lidless/WeakAuras-3.3.5a-Simple-Remastered/issues).
+
+## Credits
+
+- **WeakAuras** – the WeakAuras Team and contributors ([WeakAuras2](https://github.com/WeakAuras/WeakAuras2))
+- **3.3.5a backport (WeakAuras WotLK)** – NoM0Re and contributors ([WeakAuras-WotLK](https://github.com/NoM0Re/WeakAuras-WotLK))
+- All authors of the bundled libraries (Ace3, LibCompress, LibCustomGlow, LibDeflate, LibSerialize, LibGroupTalents and others)
+- **Grimfall & Classless compatible by Lidless**
+
+## License
+
+GNU General Public License v2, see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+This is a modified version of WeakAuras WotLK; the original copyright and license notices are kept.

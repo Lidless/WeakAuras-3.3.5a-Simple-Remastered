@@ -1,0 +1,11 @@
+# Never commit game settings or saved variables
+WTF/
+SavedVariables/
+*.lua.bak
+Cache/
+Logs/
+# OS / editor files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
