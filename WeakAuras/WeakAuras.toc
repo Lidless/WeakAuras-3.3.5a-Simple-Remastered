@@ -2,7 +2,7 @@
 ## Title: WeakAuras |cff33ff99Simple Remastered|r
 ## Author: The WeakAuras Team, backported by NoM0Re, Grimfall & Classless compatible by Lidless
 ## Version: 5.22.0
-## X-Simple-Remastered-Version: 0.1
+## X-Simple-Remastered-Version: 0.2
 ## IconTexture: Interface\AddOns\WeakAuras\Media\Textures\icon.blp
 ## X-Flavor: 3.3.5
 ## Notes: Simplified WeakAuras for Grimfall (Conquest of Azeroth and classless realms): quick setup, simple editor, per-character auras, manual role.
