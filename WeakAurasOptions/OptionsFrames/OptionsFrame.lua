@@ -564,6 +564,17 @@ function OptionsPrivate.CreateFrame()
   reportbugButton:SetFrameLevel(tipFrame:GetFrameLevel() + 1)
   reportbugButton:SetPoint("RIGHT", tipFrame, "RIGHT")
 
+  -- the width is measured before the font is ready, which cut the text ("Found a Bu...");
+  -- measure again when the footer is shown, with a little extra room
+  for _, button in ipairs({ thanksButton, reportbugButton }) do
+    button:HookScript("OnShow", function(self)
+      local widget = self.obj
+      if widget and widget.text then
+        self:SetWidth(widget.text:GetStringWidth() + 36)
+      end
+    end)
+  end
+
   local function UpdateFooterLayout()
     -- Only hide the Awesome WotLK button when all footer buttons are available
     if not (awesomeWotlkButton and discordButton
