@@ -22,6 +22,35 @@ local SharedMedia = LibStub("LibSharedMedia-3.0")
 local WeakAuras = WeakAuras
 local L = WeakAuras.L
 
+-- WeakAuras Simple Remastered: fallbacks in case SimpleEditor.lua is not loaded
+-- (e.g. new files added while the game was running only load after a full client restart).
+-- SimpleEditor.lua replaces these with the real ones.
+local function originalTabs(data)
+  local tabs = {
+    { value = "region", text = L["Display"] },
+    { value = "trigger", text = L["Trigger"] },
+    { value = "conditions", text = L["Conditions"] },
+    { value = "action", text = L["Actions"] },
+    { value = "animation", text = L["Animations"] },
+    { value = "load", text = L["Load"] },
+    { value = "authorOptions", text = L["Custom Options"] },
+    { value = "information", text = L["Information"] },
+  }
+  if data.controlledChildren and type(data.id) == "string" then
+    tinsert(tabs, 1, { value = "group", text = L["Group"] })
+  end
+  return tabs
+end
+OptionsPrivate.GetEditorTabs = OptionsPrivate.GetEditorTabs or originalTabs
+OptionsPrivate.IsValidEditorTab = OptionsPrivate.IsValidEditorTab or function(data, tab)
+  for _, t in ipairs(OptionsPrivate.GetEditorTabs(data)) do
+    if t.value == tab then return true end
+  end
+  return false
+end
+OptionsPrivate.IsAdvancedMode = OptionsPrivate.IsAdvancedMode or function() return true end
+OptionsPrivate.SetAdvancedMode = OptionsPrivate.SetAdvancedMode or function() end
+
 local displayButtons = OptionsPrivate.displayButtons
 local tempGroup = OptionsPrivate.tempGroup
 local aceOptions = {}
