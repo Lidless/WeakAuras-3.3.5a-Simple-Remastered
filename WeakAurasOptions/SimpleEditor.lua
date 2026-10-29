@@ -241,6 +241,39 @@ local function tooltipTextIndex(data)
   end
 end
 
+--- Bars with a shield number get a tidy layout instead of three texts on top of each other:
+--- number on the left, time left on the right (grey), no name (the icon shows what it is).
+function OptionsPrivate.SimpleArrangeShieldTexts(data, enabled)
+  if data.regionType ~= "aurabar" then return end
+  for _, sub in ipairs(data.subRegions or {}) do
+    if sub.type == "subtext" then
+      if sub.simpleTooltipText then
+        sub.anchor_point = "INNER_LEFT"
+        sub.text_justify = "LEFT"
+      elseif enabled then
+        if sub.text_text == "%p" and sub.anchor_point == "INNER_LEFT" then
+          sub.simpleMovedFrom = "INNER_LEFT"
+          sub.anchor_point = "INNER_RIGHT"
+          sub.text_color = { 0.85, 0.85, 0.85, 1 }
+        elseif sub.text_text == "%n" and sub.text_visible ~= false then
+          sub.simpleHidden = true
+          sub.text_visible = false
+        end
+      else
+        if sub.simpleMovedFrom then
+          sub.anchor_point = sub.simpleMovedFrom
+          sub.simpleMovedFrom = nil
+          sub.text_color = { 1, 1, 1, 1 }
+        end
+        if sub.simpleHidden then
+          sub.text_visible = true
+          sub.simpleHidden = nil
+        end
+      end
+    end
+  end
+end
+
 ---------------------------------------------------------------------------
 -- Look
 ---------------------------------------------------------------------------
@@ -365,6 +398,7 @@ function OptionsPrivate.GetSimpleLookOptions(data)
         elseif not v and index then
           tremove(data.subRegions, index)
         end
+        OptionsPrivate.SimpleArrangeShieldTexts(data, v)
         commit(data, true)
       end,
     }

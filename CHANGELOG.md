@@ -10,6 +10,7 @@ Grimfall & Classless compatible by Lidless.
   and fill a bar / circle by it as % of the value seen when the buff appeared (refresh = new 100%).
   Quick Setup step 3 and the Look tab. Available for advanced users as progress source
   "Tooltip 1 (% of starting value)" and as `%tooltip1Percent` / `%tooltip1Max` in texts.
+- Bars with the shield number get a clean layout: number on the left, time left on the right, name hidden.
 
 ## 0.3 – 2026-10-27
 

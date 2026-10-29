@@ -1076,6 +1076,15 @@ local function CreateQuickSetup(frame)
     frame.window = "default"
     frame:UpdateFrameVisible()
     WeakAuras.NewAura(data, data.regionType, targetId)
+    -- bars with a shield number: number left, time right, no name on top of them
+    if state.tooltipNumber and data.regionType == "aurabar" and OptionsPrivate.SimpleArrangeShieldTexts then
+      local created = WeakAuras.GetData(data.id)
+      if created then
+        OptionsPrivate.SimpleArrangeShieldTexts(created, true)
+        WeakAuras.Add(created)
+        WeakAuras.ClearAndUpdateOptions(created.id)
+      end
+    end
     WeakAuras.prettyPrint(L["Aura created. Drag it to its place with the mouse, then fine tune it here if you like."])
   end
 
