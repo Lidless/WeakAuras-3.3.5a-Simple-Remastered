@@ -265,6 +265,7 @@ local function resetBlock3(state)
   state.display = nil
   state.size = nil
   state.color = nil
+  state.tooltipNumber, state.tooltipPercent = nil, nil
   state.glow = false
   state.sound = "none"
 end
@@ -519,6 +520,25 @@ local function buildAuraData(state)
     end
     glow.glow = true
     data.subRegions = { glow }
+  end
+
+  -- number from the tooltip (shield left), as text and / or as the fill of the bar
+  if state.tooltipNumber or state.tooltipPercent then
+    local trigger = data.triggers[1].trigger
+    if trigger.type == "aura2" then
+      trigger.fetchTooltip = true
+      if state.tooltipPercent and state.display ~= "text" then
+        data.progressSource = { 1, "tooltip1Left" }
+      end
+      if state.tooltipNumber then
+        if state.display == "text" then
+          data.displayText = "%n %tooltip1"
+        else
+          data.subRegions = data.subRegions or {}
+          tinsert(data.subRegions, OptionsPrivate.SimpleTooltipText(state.display))
+        end
+      end
+    end
   end
 
   -- sound
@@ -948,6 +968,18 @@ local function CreateQuickSetup(frame)
         checkbox(block3, L["Glow while shown"], state.glow, function(v)
           state.glow = v
         end, 1)
+      end
+      -- shields and other buffs with a number in their tooltip (e.g. "Absorbing 241 damage")
+      local isAura = state.category == "buff" or (state.category == "proc" and state.detail == "proc")
+      if isAura and state.detail ~= "missingBuff" then
+        checkbox(block3, L["Show the number from its tooltip (e.g. shield left)"], state.tooltipNumber, function(v)
+          state.tooltipNumber = v
+        end, 1)
+        if state.display ~= "text" then
+          checkbox(block3, L["Fill it by that number (% of its starting value)"], state.tooltipPercent, function(v)
+            state.tooltipPercent = v
+          end, 1)
+        end
       end
     end
 

@@ -37,6 +37,8 @@ guided setup that works for every class, race and build.
   (also the ones from Grimfall runes) and its own DoTs on the target. Pick them from a list with icons,
   together with the spellbook and usable items. Anything missing can be added by hand.
 - **Automatic proc bar:** one bar that shows every proc as it pops up; new procs are added by themselves.
+- **Shields:** show how much a shield can still absorb (the number from its tooltip) and fill a bar by it,
+  as % of the shield's starting value.
 - 10 ready colors, fade in / fade out by default, glow on procs by default.
 - The full original editor is still there: tick **Advanced options** above the tabs.
 
@@ -66,6 +68,15 @@ guided setup that works for every class, race and build.
    4. **Where should it be?** A starting position.
    5. **When should it be active?** Combat, group, role, characters, name.
 4. Click **Create**, then drag the aura to its place with the mouse.
+
+### Shields (e.g. Hateforged Barrier)
+Grimfall shows the amount a shield can still absorb in its buff tooltip ("Absorbing 241 damage").
+In the Quick Setup (Buff / Debuff or Proc, step 3) or later on the **Look** tab:
+- **Show the number from its tooltip** writes that number on the icon / bar.
+- **Fill it by that number (% of its starting value)** makes the bar empty out as the shield is used up;
+  the moment the shield is put up counts as 100%.
+
+Example for a Felsworn Tyrant: Buff / Debuff → A buff on me → Choose... → Hateforged Barrier → Bar → tick both.
 
 ### Automatic proc bar
 **New Aura → Automatic proc bar** makes one bar (above your character) that shows all your procs while they are up,

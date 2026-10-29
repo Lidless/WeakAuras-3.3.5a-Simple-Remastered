@@ -16,7 +16,7 @@ local OptionsPrivate = select(2, ...)
 local WeakAuras = WeakAuras
 local L = WeakAuras.L
 
-local pairs, ipairs, type, tostring, tonumber, tinsert, sort = pairs, ipairs, type, tostring, tonumber, tinsert, table.sort
+local pairs, ipairs, type, tostring, tonumber, tinsert, tremove, sort = pairs, ipairs, type, tostring, tonumber, tinsert, tremove, table.sort
 
 ---------------------------------------------------------------------------
 -- Shared lists
@@ -214,6 +214,33 @@ function OptionsPrivate.IsValidEditorTab(data, tab)
   return false
 end
 
+--- a text on the aura that shows the first number of its tooltip (e.g. shield left)
+function OptionsPrivate.SimpleTooltipText(regionType)
+  local text = { type = "subtext" }
+  local subText = OptionsPrivate.Private.subRegionTypes and OptionsPrivate.Private.subRegionTypes.subtext
+  local defaults = subText and subText.default
+  if type(defaults) == "function" then defaults = defaults(regionType) end
+  if type(defaults) == "table" then
+    for k, v in pairs(defaults) do
+      text[k] = type(v) == "table" and CopyTable(v) or v
+    end
+  end
+  text.text_text = "%tooltip1"
+  text.text_visible = true
+  text.anchor_point = "CENTER"
+  text.text_fontType = "OUTLINE"
+  text.simpleTooltipText = true
+  return text
+end
+
+local function tooltipTextIndex(data)
+  for index, sub in ipairs(data.subRegions or {}) do
+    if sub.type == "subtext" and sub.simpleTooltipText then
+      return index
+    end
+  end
+end
+
 ---------------------------------------------------------------------------
 -- Look
 ---------------------------------------------------------------------------
@@ -318,6 +345,42 @@ function OptionsPrivate.GetSimpleLookOptions(data)
       type = "toggle", name = L["Show time numbers"], order = nextOrder(), width = WeakAuras.normalWidth,
       get = function() return not data.cooldownTextDisabled end,
       set = function(_, v) data.cooldownTextDisabled = not v; commit(data) end,
+    }
+  end
+
+  -- number from the tooltip (shields: "Absorbing 241 damage")
+  local auraTrigger = triggerKind(data) == "aura" and data.simpleAuto ~= "procs" and data.triggers[1].trigger
+  if auraTrigger and rt ~= "text" then
+    args.tooltipHeader = { type = "header", name = L["Number from the tooltip"], order = nextOrder() }
+    args.tooltipNumber = {
+      type = "toggle", name = L["Show the number (e.g. shield left)"], order = nextOrder(), width = WeakAuras.normalWidth,
+      desc = L["Shows the first number of the buff's tooltip, e.g. how much a shield can still absorb."],
+      get = function() return tooltipTextIndex(data) ~= nil end,
+      set = function(_, v)
+        local index = tooltipTextIndex(data)
+        if v and not index then
+          auraTrigger.fetchTooltip = true
+          data.subRegions = data.subRegions or {}
+          tinsert(data.subRegions, OptionsPrivate.SimpleTooltipText(rt))
+        elseif not v and index then
+          tremove(data.subRegions, index)
+        end
+        commit(data, true)
+      end,
+    }
+    args.tooltipPercent = {
+      type = "toggle", name = L["Fill by it (% of starting value)"], order = nextOrder(), width = WeakAuras.normalWidth,
+      desc = L["The bar / circle / clock shows how much is left compared to when the aura appeared."],
+      get = function() return data.progressSource and data.progressSource[2] == "tooltip1Left" or false end,
+      set = function(_, v)
+        if v then
+          auraTrigger.fetchTooltip = true
+          data.progressSource = { 1, "tooltip1Left" }
+        else
+          data.progressSource = { -1, "" }
+        end
+        commit(data, true)
+      end,
     }
   end
 

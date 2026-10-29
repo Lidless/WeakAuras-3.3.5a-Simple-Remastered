@@ -3,6 +3,14 @@
 Based on WeakAuras WotLK 5.22.0 (3.3.5a backport by NoM0Re, tag `5.22.0-39c2aca9`).
 Grimfall & Classless compatible by Lidless.
 
+## 0.4 – 2026-10-29
+
+### Added
+- **Shields / tooltip numbers:** show the first number of a buff's tooltip (e.g. "Absorbing 241 damage") on the aura,
+  and fill a bar / circle by it as % of the value seen when the buff appeared (refresh = new 100%).
+  Quick Setup step 3 and the Look tab. Available for advanced users as progress source
+  "Tooltip 1 (% of starting value)" and as `%tooltip1Percent` / `%tooltip1Max` in texts.
+
 ## 0.3 – 2026-10-27
 
 ### Added

@@ -301,6 +301,25 @@ local function UpdateToolTipDataInMatchData(matchData, time)
     changed = matchData.tooltip ~= tooltip or matchData.tooltip1 ~= tooltip1
       or matchData.tooltip2 ~= tooltip2 or matchData.tooltip3 ~= tooltip3 or matchData.tooltip4 ~= tooltip4
     matchData.tooltip, matchData.tooltip1, matchData.tooltip2, matchData.tooltip3, matchData.tooltip4 = tooltip, tooltip1, tooltip2, tooltip3, tooltip4
+    -- Simple Remastered: remember the largest first tooltip value since the aura was (re)applied,
+    -- so shields can be shown as % of their starting value (Grimfall absorb buffs show what is left)
+    local value = tonumber(tooltip1)
+    if value then
+      if matchData.tooltip1MaxExpiration ~= matchData.expirationTime or not matchData.tooltip1Max then
+        matchData.tooltip1Max = value
+        matchData.tooltip1MaxExpiration = matchData.expirationTime
+        changed = true
+      elseif value > matchData.tooltip1Max then
+        matchData.tooltip1Max = value
+        changed = true
+      end
+      matchData.tooltip1Left = value
+      local percent = matchData.tooltip1Max > 0 and math.floor(value / matchData.tooltip1Max * 100 + 0.5) or 0
+      if matchData.tooltip1Percent ~= percent then
+        matchData.tooltip1Percent = percent
+        changed = true
+      end
+    end
   end
 
   matchData.tooltipUpdated = time
@@ -582,6 +601,9 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
       matchCountPerUnit = matchCountPerUnit,
       tooltip = bestMatch.tooltip,
       tooltip1 = bestMatch.tooltip1,
+      tooltip1Max = bestMatch.tooltip1Max,
+      tooltip1Left = bestMatch.tooltip1Left,
+      tooltip1Percent = bestMatch.tooltip1Percent,
       tooltip2 = bestMatch.tooltip2,
       tooltip3 = bestMatch.tooltip3,
       tooltip4 = bestMatch.tooltip4,
@@ -710,6 +732,14 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
 
     if state.tooltip1 ~= bestMatch.tooltip1 then
       state.tooltip1 = bestMatch.tooltip1
+      changed = true
+    end
+
+    if state.tooltip1Max ~= bestMatch.tooltip1Max or state.tooltip1Percent ~= bestMatch.tooltip1Percent
+       or state.tooltip1Left ~= bestMatch.tooltip1Left then
+      state.tooltip1Max = bestMatch.tooltip1Max
+      state.tooltip1Left = bestMatch.tooltip1Left
+      state.tooltip1Percent = bestMatch.tooltip1Percent
       changed = true
     end
 
@@ -901,6 +931,7 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
 
     if state.tooltip or state.tooltip1 or state.tooltip2 or state.tooltip3 or state.tooltip4 then
       state.tooltip, state.tooltip1, state.tooltip2, state.tooltip3, state.tooltip4 = nil, nil, nil, nil, nil
+      state.tooltip1Max, state.tooltip1Left, state.tooltip1Percent = nil, nil, nil
       changed = true
     end
 
@@ -2944,6 +2975,14 @@ function BuffTrigger.GetProgressSources(data, triggernum, values)
       property = "tooltip1",
       type = "number",
       display = L["Tooltip 1"]
+    })
+    -- Simple Remastered: first tooltip value as part of its starting value (shield left)
+    tinsert(values, {
+      trigger = triggernum,
+      property = "tooltip1Left",
+      type = "number",
+      display = L["Tooltip 1 (% of starting value)"],
+      total = "tooltip1Max",
     })
     tinsert(values, {
       trigger = triggernum,
