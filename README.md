@@ -109,7 +109,7 @@ Click it in the list on the left. The editor has five tabs:
 
 | Tab | What you set there |
 |---|---|
-| **Look** | name, size, color, visibility, clock swipe and time numbers, glow, position |
+| **Look** | name, size, color, text colors, visibility, clock swipe and time numbers, glow, shield number, position |
 | **Trigger** | what it watches (buff name, on whom, mine only, present or missing, stacks; spell or item; power type, % limit) |
 | **Effects** | animation when it appears / while shown / when it disappears, sounds, chat message |
 | **Rules** | ready made "if this, then that" rules: change color, grey out, fade out, fade in, glow |

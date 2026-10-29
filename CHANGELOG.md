@@ -3,6 +3,12 @@
 Based on WeakAuras WotLK 5.22.0 (3.3.5a backport by NoM0Re, tag `5.22.0-39c2aca9`).
 Grimfall & Classless compatible by Lidless.
 
+## 0.5 – 2026-10-29
+
+### Added
+- **Text colors on the Look tab** (icons and bars): main text (shield number / name / stacks) and second text
+  (time left / stacks), with the same 10 preset colors.
+
 ## 0.4 – 2026-10-29
 
 ### Added

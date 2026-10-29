@@ -381,6 +381,54 @@ function OptionsPrivate.GetSimpleLookOptions(data)
     }
   end
 
+  -- text colors (icon and bar): main text and second text
+  if rt == "icon" or rt == "aurabar" then
+    local function findText(test)
+      for _, sub in ipairs(data.subRegions or {}) do
+        if sub.type == "subtext" and sub.text_visible ~= false and test(sub) then
+          return sub
+        end
+      end
+    end
+    local function mainText()
+      return findText(function(sub) return sub.simpleTooltipText end)
+          or (rt == "icon" and findText(function(sub) return sub.text_text == "%s" end))
+          or (rt == "aurabar" and findText(function(sub) return sub.text_text == "%n" end))
+    end
+    local function secondText()
+      local main = mainText()
+      local second
+      if rt == "aurabar" then
+        second = findText(function(sub) return sub.text_text == "%p" end)
+      else
+        second = findText(function(sub) return sub.text_text == "%s" end)
+      end
+      if second ~= main then return second end
+    end
+    local function colorSelect(name, getSub, orderValue)
+      return {
+        type = "select", name = name, order = orderValue, width = WeakAuras.normalWidth,
+        values = colorChoices, sorting = colorSorting,
+        hidden = function() return getSub() == nil end,
+        get = function()
+          local sub = getSub()
+          return sub and colorKeyOf(sub.text_color or { 1, 1, 1, 1 }) or "white"
+        end,
+        set = function(_, key)
+          local sub = getSub()
+          if sub and colorByKey[key] then
+            sub.text_color = copyColor(colorByKey[key].value)
+            commit(data)
+          end
+        end,
+      }
+    end
+    args.textHeader = { type = "header", name = L["Text color"], order = nextOrder(),
+      hidden = function() return mainText() == nil and secondText() == nil end }
+    args.mainTextColor = colorSelect(rt == "aurabar" and L["Main text (number / name)"] or L["Main text (number / stacks)"], mainText, nextOrder())
+    args.secondTextColor = colorSelect(rt == "aurabar" and L["Second text (time left)"] or L["Second text (stacks)"], secondText, nextOrder())
+  end
+
   -- number from the tooltip (shields: "Absorbing 241 damage")
   local auraTrigger = triggerKind(data) == "aura" and data.simpleAuto ~= "procs" and data.triggers[1].trigger
   if auraTrigger and rt ~= "text" then
