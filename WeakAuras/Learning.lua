@@ -33,7 +33,8 @@ local sort = table.sort
 --   passive     permanent buff without duration (auras, passives, Born Hero...)
 --   debuffOnMe  debuff on me
 --   mydot       my debuff / DoT on my target
-Learning.kinds = { "proc", "mybuff", "received", "passive", "debuffOnMe", "mydot" }
+--   onothers    my buff on a group member (HoTs, shields, stacking marks like Void-Touched)
+Learning.kinds = { "proc", "mybuff", "received", "passive", "debuffOnMe", "mydot", "onothers" }
 Learning.kindNames = {
   proc = L["Procs"],
   mybuff = L["My buffs"],
@@ -41,6 +42,7 @@ Learning.kindNames = {
   passive = L["Passive / permanent"],
   debuffOnMe = L["Debuffs on me"],
   mydot = L["My debuffs / DoTs on target"],
+  onothers = L["My buffs on group members"],
 }
 
 local PROC_MAX_DURATION = 30   -- seconds; longer self buffs count as "my buff"
@@ -58,9 +60,16 @@ end
 
 local scheduleAutoUpdate -- defined below
 
+local function isGroupUnit(unit)
+  return unit and (unit:sub(1, 5) == "party" or unit:sub(1, 4) == "raid") and not unit:find("pet", 1, true)
+end
+
 local function classify(filter, unit, duration, caster, name)
   if unit == "target" then
     return "mydot"
+  end
+  if isGroupUnit(unit) then
+    return "onothers"
   end
   if filter == "HARMFUL" then
     return "debuffOnMe"
@@ -111,6 +120,9 @@ local function record(unit, filter, index)
   if unit == "target" and caster ~= "player" and caster ~= "pet" then
     return true -- only my own debuffs on the target
   end
+  if isGroupUnit(unit) and caster ~= "player" and caster ~= "pet" then
+    return true -- only my own buffs on group members
+  end
   local list = store()
   if not list then return true end
   local key = spellId or name
@@ -147,7 +159,7 @@ local function scan(unit)
     return
   end
   local present = {}
-  local filters = unit == "target" and { "HARMFUL" } or { "HELPFUL", "HARMFUL" }
+  local filters = (unit == "target" and { "HARMFUL" }) or (isGroupUnit(unit) and { "HELPFUL" }) or { "HELPFUL", "HARMFUL" }
   for _, filter in ipairs(filters) do
     for i = 1, 40 do
       local name, _, _, _, _, _, _, _, _, _, spellId = UnitAura(unit, i, filter)
@@ -437,6 +449,8 @@ frame:SetScript("OnEvent", function(self, event, unit, spellName)
     end
   elseif event == "UNIT_AURA" then
     if unit == "player" or unit == "target" then
+      scan(unit)
+    elseif isGroupUnit(unit) and UnitExists(unit) and not UnitIsUnit(unit, "player") then
       scan(unit)
     end
   elseif event == "PLAYER_TARGET_CHANGED" then

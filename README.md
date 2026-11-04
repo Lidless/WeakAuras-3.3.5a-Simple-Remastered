@@ -37,6 +37,8 @@ guided setup that works for every class, race and build.
   (also the ones from Grimfall runes) and its own DoTs on the target. Pick them from a list with icons,
   together with the spellbook and usable items. Anything missing can be added by hand.
 - **Automatic proc bar:** one bar that shows every proc as it pops up; new procs are added by themselves.
+- **Healers: my buff on group members:** a thin bar under each player's raid frame (HealBot, Blizzard, Grid...)
+  with the stack number and the time left, colored by stacks; or a list with names if there are no raid frames.
 - **Shields:** show how much a shield can still absorb (the number from its tooltip) and fill a bar by it,
   as % of the shield's starting value.
 - 10 ready colors, fade in / fade out by default, glow on procs by default.
@@ -68,6 +70,17 @@ guided setup that works for every class, race and build.
    4. **Where should it be?** A starting position.
    5. **When should it be active?** Combat, group, role, characters, name.
 4. Click **Create**, then drag the aura to its place with the mouse.
+
+### Healers: my buff on group members (e.g. Void-Touched, HoTs)
+Quick Setup → **Buff / Debuff** → **My buff on group members** → Choose... (or type the name) → set **Max stacks**
+(0 if it does not stack) → Display:
+- **Bars under the raid frames:** a thin bar under each player's frame who has your buff. It shows the stack number,
+  empties as the buff runs out and turns red in the last 5 seconds. Clicks go through it, so you can still cast on the frame.
+- **List with names:** for players without raid frames; a list with the player's name above each bar (display only).
+
+With **Color by stacks** the bar is grey with few stacks, yellow with some, green with many, and gets a white frame at max stacks.
+If you resize your raid frames: Look tab → **Match the raid frame width**.
+The Choose... list learns your own buffs on group members (category "My buffs on group members").
 
 ### Shields (e.g. Hateforged Barrier)
 Grimfall shows the amount a shield can still absorb in its buff tooltip ("Absorbing 241 damage").

@@ -3,6 +3,18 @@
 Based on WeakAuras WotLK 5.22.0 (3.3.5a backport by NoM0Re, tag `5.22.0-39c2aca9`).
 Grimfall & Classless compatible by Lidless.
 
+## 0.6 – 2026-11-05
+
+Checkpoint of the previous version: branch `checkpoint-0.5`.
+
+### Added
+- **My buff on group members** (Quick Setup → Buff / Debuff): one thin bar per player who has your buff,
+  under the raid frames (HealBot, Blizzard, Grid... via LibGetFrame) or as a list with names.
+  Stack number on the bar, drains with the time left, red in the last 5 seconds, optional color by stacks
+  (grey / yellow / green) with a white frame at max stacks. Look tab: max stacks, color by stacks, bar height,
+  "Match the raid frame width".
+- Learning list: new category **My buffs on group members** (own buffs seen on party / raid members).
+
 ## 0.5 – 2026-10-29
 
 ### Added

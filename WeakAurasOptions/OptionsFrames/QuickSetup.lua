@@ -47,8 +47,9 @@ local detailTypes = {
       myDebuffOnTarget = L["My debuff / DoT on my target"],
       buffOnTarget = L["A buff on my target"],
       missingBuff = L["A buff missing from me"],
+      groupBuff = L["My buff on group members (HoTs, shields, stacking marks)"],
     },
-    order = { "myBuff", "debuffOnMe", "myDebuffOnTarget", "buffOnTarget", "missingBuff" },
+    order = { "myBuff", "debuffOnMe", "myDebuffOnTarget", "buffOnTarget", "missingBuff", "groupBuff" },
   },
   cooldown = {
     list = {
@@ -98,6 +99,8 @@ local displayTypes = {
   aurabar = L["Bar"],
   text = L["Text"],
   progresstexture = L["Circle"],
+  groupFrames = L["Bars under the raid frames"],
+  groupList = L["List with names (no raid frames)"],
 }
 local displayOrder = {
   buff = { "icon", "aurabar", "text" },
@@ -107,6 +110,8 @@ local displayOrder = {
 }
 
 local sizes = {
+  groupFrames = { label = L["Bar height"], min = 4, max = 30, step = 1, default = 12 },
+  groupList = { label = L["Width"], min = 80, max = 300, step = 10, default = 140 },
   icon = { label = L["Size"], min = 24, max = 128, step = 2, default = 48 },
   aurabar = { label = L["Width"], min = 80, max = 400, step = 10, default = 200 },
   text = { label = L["Font Size"], min = 10, max = 40, step = 1, default = 20 },
@@ -192,6 +197,10 @@ local function isCooldownLike(state)
   return state.category == "cooldown" or state.category == "proc"
 end
 
+local function isGroupBuff(state)
+  return state.category == "buff" and state.detail == "groupBuff"
+end
+
 local function needsName(state)
   if state.category == "buff" then return true end
   if isCooldownLike(state) then return true end
@@ -251,6 +260,7 @@ local function resetBlock2(state)
   state.powerType = UnitPowerType and UnitPowerType("player") or 0
   if not powerTypes.list[state.powerType] then state.powerType = 0 end
   state.below = 0
+  state.maxStacks = 10
 end
 
 local function resetBlock2Details(state)
@@ -259,6 +269,7 @@ local function resetBlock2Details(state)
   state.showOn = "showAlways"
   state.unit = "player"
   state.below = 0
+  state.maxStacks = 10
 end
 
 local function resetBlock3(state)
@@ -266,6 +277,7 @@ local function resetBlock3(state)
   state.size = nil
   state.color = nil
   state.tooltipNumber, state.tooltipPercent = nil, nil
+  state.colorByStacks = true
   state.glow = false
   state.sound = "none"
 end
@@ -291,7 +303,8 @@ local function blockComplete(state, block)
   elseif block == 3 then
     return state.display ~= nil
   elseif block == 4 then
-    return state.position ~= nil
+    -- bars under the raid frames have no position of their own
+    return state.position ~= nil or state.display == "groupFrames"
   end
   return true
 end
@@ -458,7 +471,54 @@ local function buildTrigger(state)
   end
 end
 
+local function buildGroupBarsData(state)
+  local names = {}
+  for name in tostring(state.name):gmatch("[^,]+") do
+    name = name:match("^%s*(.-)%s*$")
+    if name ~= "" then tinsert(names, name) end
+  end
+  local exactId = state.pickedId and state.pickedName == state.name and state.pickedId or nil
+  local mode = state.display == "groupFrames" and "frames" or "list"
+  local data = {
+    id = OptionsPrivate.Private.FindUnusedId(state.auraName ~= "" and state.auraName or defaultAuraName(state)),
+    regionType = "aurabar",
+    triggers = { { trigger = OptionsPrivate.SimpleGroupBars.Trigger(names, exactId), untrigger = {} } },
+    load = {},
+    actions = { init = {}, start = {}, finish = {} },
+    simpleGroupBars = {
+      mode = mode,
+      maxStacks = state.maxStacks or 10,
+      colorByStacks = state.colorByStacks ~= false,
+      height = mode == "frames" and (state.size or 12) or 12,
+    },
+    animation = {
+      start = { type = "preset", preset = "fade", duration_type = "seconds", easeType = "none", easeStrength = 3 },
+      main = { type = "none", duration_type = "seconds", easeType = "none", easeStrength = 3 },
+      finish = { type = "preset", preset = "fade", duration_type = "seconds", easeType = "none", easeStrength = 3 },
+    },
+  }
+  if mode == "list" then
+    data.width = state.size or 140
+    data.anchorFrameType = "SCREEN"
+    data.anchorPoint, data.selfPoint = "CENTER", "CENTER"
+    data.xOffset, data.yOffset = 0, 0
+  end
+  if state.sound and state.sound ~= "none" then
+    data.actions.start.do_sound = true
+    data.actions.start.sound = state.sound
+    data.actions.start.sound_channel = "Master"
+  end
+  return data
+end
+
+local applyWhen -- defined below
+
 local function buildAuraData(state)
+  if isGroupBuff(state) then
+    local groupData = buildGroupBarsData(state)
+    applyWhen(state, groupData)
+    return groupData
+  end
   local data = {
     id = OptionsPrivate.Private.FindUnusedId(state.auraName ~= "" and state.auraName or defaultAuraName(state)),
     regionType = state.display,
@@ -548,7 +608,11 @@ local function buildAuraData(state)
     data.actions.start.sound_channel = "Master"
   end
 
-  -- when
+  applyWhen(state, data)
+  return data
+end
+
+applyWhen = function(state, data)
   if state.combat == "combat" then
     data.load.use_combat = true
   elseif state.combat == "noCombat" then
@@ -578,8 +642,6 @@ local function buildAuraData(state)
   if state.allCharacters then
     data.grimfallSkipBinding = true
   end
-
-  return data
 end
 
 ---------------------------------------------------------------------------
@@ -847,6 +909,8 @@ local function CreateQuickSetup(frame)
             pickerCategories = cats.buffOnTarget
           elseif state.detail == "missingBuff" then
             pickerCategories = cats.missing
+          elseif state.detail == "groupBuff" then
+            pickerCategories = cats.groupBuff
           else
             pickerCategories = cats.myBuff
           end
@@ -910,6 +974,12 @@ local function CreateQuickSetup(frame)
           end, 1)
         end
 
+        if isGroupBuff(state) then
+          slider(block2, L["Max stacks (0 = it does not stack)"], 0, 50, 1, state.maxStacks or 10, function(v)
+            state.maxStacks = v
+          end, 1)
+        end
+
         if state.category == "resource" then
           if state.detail == "power" then
             dropdown(block2, L["Power type"], powerTypes, state.powerType, function(key)
@@ -933,7 +1003,8 @@ local function CreateQuickSetup(frame)
     -- 3. How to show it
     local block3 = addBlock(3, L["3. How should it look?"])
     local displayChoices = { list = {}, order = {} }
-    for _, key in ipairs(displayOrder[state.category or "buff"]) do
+    local displayKeys = isGroupBuff(state) and { "groupFrames", "groupList" } or displayOrder[state.category or "buff"]
+    for _, key in ipairs(displayKeys) do
       displayChoices.list[key] = displayTypes[key]
       tinsert(displayChoices.order, key)
     end
@@ -946,7 +1017,25 @@ local function CreateQuickSetup(frame)
       state.glow = state.category == "proc" and (key == "icon" or key == "aurabar")
       rebuild()
     end, 1)
-    if state.display then
+    if state.display and isGroupBuff(state) then
+      local s = sizes[state.display]
+      if s then
+        slider(block3, s.label, s.min, s.max, s.step, state.size or s.default, function(v)
+          state.size = v
+        end)
+      end
+      checkbox(block3, L["Color by stacks (few grey, some yellow, many green)"], state.colorByStacks ~= false, function(v)
+        state.colorByStacks = v
+      end, 1)
+      local sounds, soundOrder = soundList()
+      dropdown(block3, L["Sound when it appears"], { list = sounds, order = soundOrder }, state.sound, function(key)
+        state.sound = key
+        if key ~= "none" and PlaySoundFile then
+          PlaySoundFile(key, "Master")
+        end
+      end)
+      label(block3, "|cff999999" .. L["The stack number is shown on each bar, the bar empties as the buff runs out and turns red in the last 5 seconds."] .. "|r")
+    elseif state.display then
       local s = sizes[state.display]
       slider(block3, s.label, s.min, s.max, s.step, state.size or s.default, function(v)
         state.size = v
@@ -985,11 +1074,18 @@ local function CreateQuickSetup(frame)
 
     -- 4. Where
     local block4 = addBlock(4, L["4. Where should it be?"])
-    dropdown(block4, L["Position"], positions, state.position, function(key)
-      state.position = key
-      refresh()
-    end, 1)
-    label(block4, "|cff999999" .. L["After creating it you can drag it anywhere with the mouse."] .. "|r")
+    if state.display == "groupFrames" then
+      label(block4, L["Under each player's raid frame (HealBot, Blizzard, Grid and others)."])
+      if OptionsPrivate.SimpleGroupBars and not OptionsPrivate.SimpleGroupBars.FrameWidth() then
+        label(block4, "|cffffd100" .. L["No raid frame found right now. It works once your raid frames are shown (e.g. in a group); otherwise choose \"List with names\"."] .. "|r")
+      end
+    else
+      dropdown(block4, L["Position"], positions, state.position, function(key)
+        state.position = key
+        refresh()
+      end, 1)
+      label(block4, "|cff999999" .. L["After creating it you can drag it anywhere with the mouse."] .. "|r")
+    end
 
     -- 5. When
     local block5 = addBlock(5, L["5. When should it be active?"])
@@ -1075,6 +1171,10 @@ local function CreateQuickSetup(frame)
     local targetId = self.targetId
     frame.window = "default"
     frame:UpdateFrameVisible()
+    if data.simpleGroupBars then
+      OptionsPrivate.CreateGroupBars(data, state, targetId)
+      return
+    end
     WeakAuras.NewAura(data, data.regionType, targetId)
     -- bars with a shield number: number left, time right, no name on top of them
     if state.tooltipNumber and data.regionType == "aurabar" and OptionsPrivate.SimpleArrangeShieldTexts then
@@ -1177,5 +1277,46 @@ function OptionsPrivate.CreateAutoProcBar()
     WeakAuras.prettyPrint(L["Automatic proc bar created. No procs learned yet: play a little, procs are added to the bar by themselves."])
   else
     WeakAuras.prettyPrint(L["Automatic proc bar created with %d procs. New procs are added by themselves; hide one with right click in the Choose... list."]:format(#ids))
+  end
+end
+
+---------------------------------------------------------------------------
+-- "My buff on group members": create the bars (and the list group in list mode)
+---------------------------------------------------------------------------
+
+function OptionsPrivate.CreateGroupBars(data, state, targetId)
+  local GroupBars = OptionsPrivate.SimpleGroupBars
+  local parentId = targetId
+  if data.simpleGroupBars.mode == "list" then
+    local offset = positions.offsets[state.position] or { 0, 0 }
+    local group = {
+      id = OptionsPrivate.Private.FindUnusedId(data.id .. " " .. L["(list)"]),
+      regionType = "dynamicgroup",
+      grow = "DOWN",
+      align = "LEFT",
+      space = 14, -- room for the name above each bar
+      sort = "ascending", -- least time left first
+      selfPoint = "TOP",
+      anchorPoint = "CENTER",
+      anchorFrameType = "SCREEN",
+      xOffset = offset[1],
+      yOffset = offset[2],
+    }
+    if state.allCharacters then group.grimfallSkipBinding = true end
+    WeakAuras.NewAura(group, "dynamicgroup", targetId)
+    parentId = group.id
+  end
+  WeakAuras.NewAura(data, "aurabar", parentId)
+  local created = WeakAuras.GetData(data.id)
+  if created then
+    GroupBars.Apply(created)
+    WeakAuras.Add(created)
+    WeakAuras.ClearAndUpdateOptions(created.id)
+    WeakAuras.UpdateThumbnail(created)
+  end
+  if data.simpleGroupBars.mode == "frames" then
+    WeakAuras.prettyPrint(L["Bars created under the raid frames. If your raid frames change size, use \"Match the raid frame width\" on the Look tab."])
+  else
+    WeakAuras.prettyPrint(L["List created. Drag it to its place with the mouse."])
   end
 end

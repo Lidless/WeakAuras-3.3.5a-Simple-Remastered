@@ -167,6 +167,158 @@ local function supported(data)
 end
 
 ---------------------------------------------------------------------------
+-- "My buff on group members": one thin bar per player
+--   mode "frames": under each player's raid frame (HealBot, Blizzard, Grid... found by LibGetFrame)
+--   mode "list":   a list with the player's name above each bar (when there are no raid frames)
+-- data.simpleGroupBars = { mode, maxStacks, colorByStacks, height }
+---------------------------------------------------------------------------
+
+local GroupBars = {}
+OptionsPrivate.SimpleGroupBars = GroupBars
+
+function GroupBars.Trigger(names, exactId)
+  local trigger = {
+    type = "aura2",
+    unit = "group",
+    debuffType = "HELPFUL",
+    ownOnly = true,
+    useName = true,
+    auranames = names or {},
+    matchesShowOn = "showOnActive",
+    showClones = true,
+    combinePerUnit = true,
+    perUnitMode = "affected",
+    unitExists = false,
+  }
+  if exactId then
+    trigger.useName = false
+    trigger.useExactSpellId = true
+    trigger.auraspellids = { tostring(exactId) }
+  end
+  return trigger
+end
+
+--- width of a raid frame, in screen (UIParent) units; nil when no raid frame is found
+function GroupBars.FrameWidth()
+  local getFrame = WeakAuras.GetUnitFrame
+  local frame = getFrame and (getFrame("player") or getFrame("party1") or getFrame("raid1"))
+  if frame and frame.GetWidth and frame:GetWidth() and frame:GetWidth() > 0 then
+    local scale = (frame:GetEffectiveScale() or 1) / (UIParent:GetEffectiveScale() or 1)
+    return math.floor(frame:GetWidth() * scale + 0.5)
+  end
+end
+
+local function stackText(data)
+  for _, sub in ipairs(data.subRegions or {}) do
+    if sub.type == "subtext" and sub.simpleStackText then return sub end
+  end
+end
+
+local function nameText(data)
+  for _, sub in ipairs(data.subRegions or {}) do
+    if sub.type == "subtext" and sub.simpleNameText then return sub end
+  end
+end
+
+--- texts: stack number in the middle of the bar, player name above it (list mode), nothing else
+function GroupBars.ArrangeTexts(data)
+  local cfg = data.simpleGroupBars or {}
+  data.subRegions = data.subRegions or {}
+  for _, sub in ipairs(data.subRegions) do
+    if sub.type == "subtext" and not sub.simpleStackText and not sub.simpleNameText then
+      sub.text_visible = false
+    end
+  end
+  local height = cfg.height or 12
+  local stacks = stackText(data)
+  if not stacks then
+    stacks = OptionsPrivate.SimpleTooltipText("aurabar")
+    stacks.simpleTooltipText = nil
+    stacks.simpleStackText = true
+    tinsert(data.subRegions, stacks)
+  end
+  stacks.text_text = "%s"
+  stacks.text_visible = (cfg.maxStacks or 0) > 0
+  stacks.anchor_point = "CENTER"
+  stacks.text_justify = "CENTER"
+  stacks.text_fontSize = math.max(8, math.min(16, height - 1))
+  stacks.text_fontType = "OUTLINE"
+  stacks.text_color = { 1, 1, 1, 1 }
+
+  local name = nameText(data)
+  if cfg.mode == "list" then
+    if not name then
+      name = OptionsPrivate.SimpleTooltipText("aurabar")
+      name.simpleTooltipText = nil
+      name.simpleNameText = true
+      tinsert(data.subRegions, name)
+    end
+    name.text_text = "%unitName"
+    name.text_visible = true
+    name.anchor_point = "TOPLEFT"
+    name.text_selfPoint = "BOTTOMLEFT"
+    name.text_justify = "LEFT"
+    name.text_fontSize = 11
+    name.text_fontType = "OUTLINE"
+    name.text_color = { 1, 1, 1, 1 }
+  elseif name then
+    name.text_visible = false
+  end
+end
+
+--- colors: by stacks (few = grey, some = yellow, many = green), glow at max stacks, red in the last 5 seconds
+function GroupBars.BuildConditions(data)
+  local cfg = data.simpleGroupBars or {}
+  local max = cfg.maxStacks or 0
+  local conditions = {}
+  if cfg.colorByStacks and max > 0 then
+    data.barColor = copyColor(colorByKey.grey.value)
+    local some = math.max(2, math.ceil(max * 0.4))
+    local many = math.max(some + 1, math.ceil(max * 0.8))
+    tinsert(conditions, { check = { trigger = 1, variable = "stacks", op = ">=", value = tostring(some) },
+      changes = { { property = "barColor", value = copyColor(colorByKey.yellow.value) } } })
+    tinsert(conditions, { check = { trigger = 1, variable = "stacks", op = ">=", value = tostring(many) },
+      changes = { { property = "barColor", value = copyColor(colorByKey.green.value) } } })
+    local index = ensureGlow(data)
+    local glow = data.subRegions[index]
+    glow.glow = false
+    glow.glowType = "Pixel"
+    glow.useGlowColor = true
+    glow.glowColor = { 1, 1, 1, 1 }
+    tinsert(conditions, { check = { trigger = 1, variable = "stacks", op = ">=", value = tostring(max) },
+      changes = { { property = "sub." .. index .. ".glow", value = true } } })
+  else
+    data.barColor = { 1, 1, 1, 1 }
+  end
+  tinsert(conditions, { check = { trigger = 1, variable = "expirationTime", op = "<=", value = "5" },
+    changes = { { property = "barColor", value = copyColor(colorByKey.red.value) } } })
+  data.conditions = conditions
+end
+
+--- region settings for the chosen mode
+function GroupBars.ApplyLayout(data)
+  local cfg = data.simpleGroupBars or {}
+  data.height = cfg.height or 12
+  data.icon = false
+  data.texture = data.texture or "Blizzard"
+  data.backgroundColor = { 0, 0, 0, 0.55 }
+  if cfg.mode == "frames" then
+    data.anchorFrameType = "UNITFRAME"
+    data.anchorPoint = "BOTTOM"
+    data.selfPoint = "TOP"
+    data.xOffset, data.yOffset = 0, 0
+    data.frameStrata = 5 -- above the raid frames
+    data.width = GroupBars.FrameWidth() or data.width or 80
+  end
+end
+
+function GroupBars.Apply(data)
+  GroupBars.ApplyLayout(data)
+  GroupBars.ArrangeTexts(data)
+  GroupBars.BuildConditions(data)
+end
+
+---------------------------------------------------------------------------
 -- Mode
 ---------------------------------------------------------------------------
 
@@ -379,6 +531,47 @@ function OptionsPrivate.GetSimpleLookOptions(data)
       get = function() return not data.cooldownTextDisabled end,
       set = function(_, v) data.cooldownTextDisabled = not v; commit(data) end,
     }
+  end
+
+  -- bars on group members: stacks, colors, height, raid frame width
+  if data.simpleGroupBars then
+    local cfg = data.simpleGroupBars
+    local function changed() GroupBars.Apply(data); commit(data, true) end
+    args.groupHeader = { type = "header", name = L["Bars on group members"], order = nextOrder() }
+    args.groupMax = {
+      type = "range", name = L["Max stacks (0 = no stacks)"], order = nextOrder(), width = WeakAuras.normalWidth,
+      min = 0, max = 50, step = 1,
+      get = function() return cfg.maxStacks or 0 end,
+      set = function(_, v) cfg.maxStacks = v; changed() end,
+    }
+    args.groupColor = {
+      type = "toggle", name = L["Color by stacks"], order = nextOrder(), width = WeakAuras.normalWidth,
+      desc = L["Few stacks grey, some yellow, many green, a white frame at max stacks. Always red in the last 5 seconds."],
+      disabled = function() return (cfg.maxStacks or 0) == 0 end,
+      get = function() return cfg.colorByStacks end,
+      set = function(_, v) cfg.colorByStacks = v; changed() end,
+    }
+    args.groupHeight = {
+      type = "range", name = L["Bar height"], order = nextOrder(), width = WeakAuras.normalWidth,
+      min = 4, max = 30, step = 1,
+      get = function() return cfg.height or 12 end,
+      set = function(_, v) cfg.height = v; changed() end,
+    }
+    if cfg.mode == "frames" then
+      args.groupWidth = {
+        type = "execute", name = L["Match the raid frame width"], order = nextOrder(), width = WeakAuras.normalWidth,
+        desc = L["Use this after you changed the size of your raid frames."],
+        func = function()
+          local width = GroupBars.FrameWidth()
+          if width then
+            data.width = width
+            commit(data, true)
+          else
+            WeakAuras.prettyPrint(L["No raid frame found. Join a group, or check that your raid frames are shown."])
+          end
+        end,
+      }
+    end
   end
 
   -- text colors (icon and bar): main text and second text
@@ -605,6 +798,59 @@ function OptionsPrivate.GetSimpleTriggerOptions(data)
   local function nextOrder() order = order + 1 return order end
   local kind = triggerKind(data)
   local t = kind and data.triggers[1].trigger
+
+  if data.simpleGroupBars and data.triggers[1] and data.triggers[1].trigger.type == "aura2" then
+    local gt = data.triggers[1].trigger
+    args.info = {
+      type = "description", order = nextOrder(), width = WeakAuras.doubleWidth, fontSize = "medium",
+      name = L["Shows your own buff on every group member who has it, one bar per player."],
+    }
+    args.names = {
+      type = "input", name = L["Buff name or spell ID"], order = nextOrder(), width = WeakAuras.normalWidth * 1.4,
+      get = function()
+        if gt.useExactSpellId and gt.auraspellids then
+          local names = {}
+          for _, id in ipairs(gt.auraspellids) do
+            tinsert(names, (GetSpellInfo(tonumber(id) or 0)) or tostring(id))
+          end
+          return table.concat(names, ", ")
+        end
+        return table.concat(gt.auranames or {}, ", ")
+      end,
+      set = function(_, v)
+        gt.auranames = {}
+        for name in tostring(v or ""):gmatch("[^,]+") do
+          name = name:match("^%s*(.-)%s*$")
+          if name ~= "" then tinsert(gt.auranames, name) end
+        end
+        gt.useName, gt.useExactSpellId, gt.auraspellids = true, nil, nil
+        commit(data, true)
+      end,
+    }
+    args.choose = {
+      type = "execute", name = L["Choose..."], order = nextOrder(), width = WeakAuras.normalWidth * 0.6,
+      func = function()
+        OptionsPrivate.OpenPicker(OptionsPrivate.PickerCategories.groupBuff, function(entry)
+          gt.auranames = { entry.name }
+          if entry.spellId then
+            gt.useName, gt.useExactSpellId, gt.auraspellids = false, true, { tostring(entry.spellId) }
+          else
+            gt.useName, gt.useExactSpellId, gt.auraspellids = true, nil, nil
+          end
+          commit(data, true)
+        end)
+      end,
+    }
+    args.namesWarning = {
+      type = "description", order = nextOrder(), width = WeakAuras.doubleWidth, fontSize = "medium",
+      name = "|cffff4040" .. L["No name given: it would show ANY of your buffs. Type a name or use Choose."] .. "|r",
+      hidden = function()
+        return (gt.useName and gt.auranames and #gt.auranames > 0)
+            or (gt.useExactSpellId and gt.auraspellids and #gt.auraspellids > 0)
+      end,
+    }
+    return { type = "group", name = L["Trigger"], order = 1, args = args }
+  end
 
   if data.simpleAuto == "procs" then
     args.info = {
@@ -1144,6 +1390,14 @@ function OptionsPrivate.GetSimpleRulesOptions(data)
   local function nextOrder() order = order + 1 return order end
   local kind = triggerKind(data)
   local rules = kind and ruleSets[kind]
+
+  if data.simpleGroupBars then
+    args.info = {
+      type = "description", order = 1, width = WeakAuras.doubleWidth, fontSize = "medium",
+      name = L["The colors of these bars (by stacks, red in the last 5 seconds) are set on the Look tab."],
+    }
+    return { type = "group", name = L["Rules"], order = 1, args = args }
+  end
 
   if not rules then
     args.info = {
