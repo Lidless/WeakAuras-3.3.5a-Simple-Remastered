@@ -3149,13 +3149,16 @@ do
       local actionType, id, subType, spellId = GetActionInfo(slot)
       if actionType == "spell" then
         -- 3.3.5: id is the spellbook index, the 4th value is the spell id
-        if spellId and not actionSlotBySpell[spellId] then
-          actionSlotBySpell[spellId] = slot
+        -- a spell can be on several buttons: keep all of them
+        if spellId then
+          actionSlotBySpell[spellId] = actionSlotBySpell[spellId] or {}
+          tinsert(actionSlotBySpell[spellId], slot)
         end
         -- also by name, so other ranks / ids of the same spell find the button
         local name = (spellId and GetSpellInfo(spellId)) or (id and subType and GetSpellName(id, subType))
-        if name and not actionSlotBySpell[name] then
-          actionSlotBySpell[name] = slot
+        if name then
+          actionSlotBySpell[name] = actionSlotBySpell[name] or {}
+          tinsert(actionSlotBySpell[name], slot)
         end
       end
     end
@@ -3168,15 +3171,30 @@ do
   actionSlotFrame:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
   actionSlotFrame:SetScript("OnEvent", function() actionSlotBySpell = nil end)
 
-  local function actionSlotFor(id)
+  local function actionSlotsFor(id)
     if not id then return end
     if not actionSlotBySpell then buildActionSlots() end
-    local slot = actionSlotBySpell[id]
-    if not slot then
+    local slots = actionSlotBySpell[id]
+    if not slots then
       local name = GetSpellInfo(id)
-      slot = name and actionSlotBySpell[name]
+      slots = name and actionSlotBySpell[name]
     end
-    return slot
+    return slots
+  end
+  -- the button that tells the most: one with a cooldown running, else one with a charge number
+  local function actionSlotFor(id)
+    local slots = actionSlotsFor(id)
+    if not slots then return end
+    local best, bestScore = slots[1], -1
+    for _, slot in ipairs(slots) do
+      local _, duration = GetActionCooldown(slot)
+      local count = GetActionCount(slot) or 0
+      local score = ((duration and duration > 0) and 2 or 0) + ((count > 0) and 1 or 0)
+      if score > bestScore then
+        best, bestScore = slot, score
+      end
+    end
+    return best
   end
   Private.ActionSlotForSpell = actionSlotFor
 
@@ -3198,10 +3216,13 @@ do
     p("GetSpellCooldown:", GetSpellCooldown(id))
     p("GetSpellCount:", GetSpellCount(id), "| usable:", IsUsableSpell(id))
     actionSlotBySpell = nil
-    local slot = actionSlotFor(id)
-    if slot then
-      p("action slot:", slot, "| GetActionInfo:", GetActionInfo(slot))
-      p("GetActionCount:", GetActionCount(slot), "| GetActionCooldown:", GetActionCooldown(slot))
+    local slots = actionSlotsFor(id)
+    if slots then
+      for _, slot in ipairs(slots) do
+        p("slot", slot, "| GetActionInfo:", GetActionInfo(slot))
+        p("   slot", slot, "| GetActionCount:", GetActionCount(slot), "| GetActionCooldown:", GetActionCooldown(slot))
+      end
+      p("used slot:", actionSlotFor(id))
     else
       p("not found on the action bars (slots 1-144)")
     end
