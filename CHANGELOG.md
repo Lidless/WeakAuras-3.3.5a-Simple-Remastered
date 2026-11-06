@@ -3,6 +3,12 @@
 Based on WeakAuras WotLK 5.22.0 (3.3.5a backport by NoM0Re, tag `5.22.0-39c2aca9`).
 Grimfall & Classless compatible by Lidless.
 
+## 0.6.1 – 2026-11-06
+
+### Changed
+- Choose... window: a line above the list always explains where it comes from (learned since install /
+  spellbook / bags); an empty learned list now tells clearly what to do.
+
 ## 0.6 – 2026-11-05
 
 Checkpoint of the previous version: branch `checkpoint-0.5`.

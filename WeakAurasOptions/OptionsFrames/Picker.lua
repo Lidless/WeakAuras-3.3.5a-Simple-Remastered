@@ -95,9 +95,15 @@ local function CreatePicker()
   searchBox:SetRelativeWidth(0.5)
   frame:AddChild(searchBox)
 
+  -- always visible: how the list is filled (people expect a full list and get confused by an empty one)
+  local infoLabel = AceGUI:Create("Label")
+  infoLabel:SetFullWidth(true)
+  infoLabel:SetText("")
+  frame:AddChild(infoLabel)
+
   local listGroup = AceGUI:Create("SimpleGroup")
   listGroup:SetFullWidth(true)
-  listGroup:SetHeight(330)
+  listGroup:SetHeight(300)
   listGroup:SetLayout("Fill")
   frame:AddChild(listGroup)
 
@@ -212,7 +218,14 @@ local function CreatePicker()
       local empty = AceGUI:Create("Label")
       empty:SetFullWidth(true)
       if isLearnedKind(category) and search == "" then
-        empty:SetText(L["Nothing here yet. Play a little with this character (fight, use your abilities): procs, buffs and debuffs are noted automatically. Or add one by hand below."])
+        empty:SetText("|cffffd100" .. L["This list is still empty."] .. "|r\n\n"
+          .. L["The addon learns by itself: it lists the buffs, debuffs and procs this character has had since the addon was installed."] .. "\n\n"
+          .. L["What to do:"] .. "\n"
+          .. "  1. " .. L["Close this window and play a little (fight, use your abilities, get your procs)."] .. "\n"
+          .. "  2. " .. L["Open Choose... again: everything you have seen is here, with its icon."] .. "\n\n"
+          .. L["Or add it by hand below (name or spell ID)."])
+      elseif isLearnedKind(category) then
+        empty:SetText(L["Nothing found."] .. " " .. L["If you have not had it on this character yet, use it once in game, or add it by hand below."])
       else
         empty:SetText(L["Nothing found."])
       end
@@ -225,6 +238,13 @@ local function CreatePicker()
     end
     scroll:ResumeLayout()
     scroll:DoLayout()
+    if isLearnedKind(category) then
+      infoLabel:SetText("|cffffd100" .. L["Learns by itself:"] .. "|r " .. L["shows what this character has had since the addon was installed. Missing something? Use it once in game, or add it by hand below."])
+    elseif category == "item" then
+      infoLabel:SetText("|cffffd100" .. L["Read from your bags and equipment right now."] .. "|r")
+    else
+      infoLabel:SetText("|cffffd100" .. L["Read from your spellbook (and your pet's) right now."] .. "|r")
+    end
     if isLearnedKind(category) then
       frame:SetStatusText(L["Left click: choose.  Right click: move to another category or remove."])
     else

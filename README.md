@@ -111,8 +111,10 @@ Next to every name field there is a **Choose...** button. It opens a list with i
 | **Spells with cooldown / Other spells** | your spellbook and your pet's (read when you open the list) |
 | **Usable items** | trinkets, potions and other items with a "Use:" effect, in your bags or equipped |
 
-- The aura lists fill up while you play: **a new character starts empty**, fight a little and use your abilities.
-  Each character has its own list.
+- **The aura lists learn by themselves.** They show the buffs, debuffs and procs **this character has had since
+  the addon was installed** – so right after installing they are **empty**. Play a little (fight, use your abilities,
+  get your procs) and open Choose... again. Each character has its own list.
+  Spells and items are different: they are read from your spellbook and bags right away.
 - Picked auras are matched by their **exact spell ID**, so two custom auras with the same name don't get mixed up.
 - **Right click** an entry to move it to another category (if a proc was sorted wrong) or to remove it.
 - **Not in the list?** Add it by hand at the bottom of the window (name or spell ID + category).
