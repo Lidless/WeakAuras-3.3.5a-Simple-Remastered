@@ -139,6 +139,7 @@ Tick **Advanced options** (above the tabs) to see every original WeakAuras setti
 | `/wa role tank`, `/wa role dps`, `/wa role healer` | choose your role on this character (also: role button in the editor's top bar) |
 | `/wa role` | show your current role |
 | `/wa role sync on`, `/wa role sync off` | keep the role in sync with Threat Plates (on by default when it is installed) |
+| `/wa cd Rylak's Bite` | show what the game reports for a spell cooldown (paste it into a bug report) |
 | `/wa minimap` | show / hide the minimap icon |
 | `/wa help` | list of commands |
 

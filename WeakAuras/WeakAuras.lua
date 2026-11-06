@@ -196,6 +196,7 @@ function Private.PrintHelp()
   print(L["/wa pstop - Finish profiling"])
   print(L["/wa pprint - Show the results from the most recent profiling"])
   print(L["/wa repair - Repair tool"])
+  print("/wa cd <spell name or id> - show what the game reports for a spell cooldown (for bug reports)")
   print(L["If you require additional assistance, please open an issue on the WeakAuras Simple Remastered GitHub page: https://github.com/Lidless/WeakAuras-3.3.5a-Simple-Remastered/issues"])
 end
 
@@ -237,6 +238,9 @@ function SlashCmdList.WEAKAURAS(input)
     else
       Private.Grimfall.PrintRole()
     end
+  elseif msg == "cd" then
+    -- Simple Remastered: cooldown diagnostics, keeps the case of the spell name
+    Private.DebugSpellCooldown(input:match("^%s*%S+%s+(.-)%s*$"))
   elseif msg == "minimap" then
     WeakAuras.ToggleMinimap();
   elseif msg == "help" then

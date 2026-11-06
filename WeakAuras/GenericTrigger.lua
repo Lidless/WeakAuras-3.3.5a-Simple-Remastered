@@ -3169,6 +3169,7 @@ do
   actionSlotFrame:SetScript("OnEvent", function() actionSlotBySpell = nil end)
 
   local function actionSlotFor(id)
+    if not id then return end
     if not actionSlotBySpell then buildActionSlots() end
     local slot = actionSlotBySpell[id]
     if not slot then
@@ -3179,10 +3180,39 @@ do
   end
   Private.ActionSlotForSpell = actionSlotFor
 
+  -- /wa cd <spell name or id>: prints what the client reports for a spell cooldown
+  function Private.DebugSpellCooldown(spell)
+    local function p(...)
+      local parts = {}
+      for i = 1, select("#", ...) do parts[i] = tostring((select(i, ...))) end
+      DEFAULT_CHAT_FRAME:AddMessage("|cff9900ffWA cd:|r " .. table.concat(parts, " "))
+    end
+    if not spell or spell == "" then
+      p("usage: /wa cd <spell name or spell id>")
+      return
+    end
+    local id = tonumber(spell) or spell
+    local name, rank = GetSpellInfo(id)
+    p("spell:", spell, "| name:", name, rank, "| link:", GetSpellLink(id))
+    p("IsSpellKnown:", type(id) == "number" and tostring(IsSpellKnown(id)) or "-", "| WA known:", WeakAuras.IsSpellKnownIncludingPet(id))
+    p("GetSpellCooldown:", GetSpellCooldown(id))
+    p("GetSpellCount:", GetSpellCount(id), "| usable:", IsUsableSpell(id))
+    actionSlotBySpell = nil
+    local slot = actionSlotFor(id)
+    if slot then
+      p("action slot:", slot, "| GetActionInfo:", GetActionInfo(slot))
+      p("GetActionCount:", GetActionCount(slot), "| GetActionCooldown:", GetActionCooldown(slot))
+    else
+      p("not found on the action bars (slots 1-144)")
+    end
+    local startTime, duration, _, startCd, durationCd, _, count, paused = WeakAuras.GetSpellCooldownUnified(id, 0)
+    p("WA result: start", startTime, "dur", duration, "| recharge", startCd, durationCd, "| charges", count, "| paused", paused, "| now", GetTime())
+  end
+
   function WeakAuras.GetSpellCooldownUnified(id, runeDuration)
     local startTimeCooldown, durationCooldown, enabled = GetSpellCooldown(id)
     -- Grimfall charges: take the cooldown shown on the action button if the spell has none
-    local actionSlot = type(id) == "number" and actionSlotFor(id)
+    local actionSlot = actionSlotFor(id)
     if actionSlot and (not durationCooldown or durationCooldown == 0) then
       local aStart, aDuration, aEnabled = GetActionCooldown(actionSlot)
       if aDuration and aDuration > 0 then
@@ -3219,7 +3249,9 @@ do
     -- Others the real cd (that continues ticking) is paused.
     -- Also Stealth and Prowl are not on cooldown and are put on an entirely bogus of 10 paused cd
     -- We treat anything with less than 0.5 or exactly 10 seconds as not on cd, and hope for the best.
-    if not enabled and (durationCooldown <= 0.5 or durationCooldown == 10) then
+    -- Simple Remastered: the retail "exactly 10 sec" Stealth/Prowl workaround is left out,
+    -- Grimfall has real 10 sec cooldowns / recharges (e.g. Rylak's Bite)
+    if not enabled and durationCooldown <= 0.5 then
       startTimeCooldown, durationCooldown, enabled = 0, 0, true
     end
 

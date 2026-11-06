@@ -3,6 +3,19 @@
 Based on WeakAuras WotLK 5.22.0 (3.3.5a backport by NoM0Re, tag `5.22.0-39c2aca9`).
 Grimfall & Classless compatible by Lidless.
 
+## 0.6.4 – 2026-11-06
+
+### Fixed
+- Cooldowns of **talent abilities and custom spells** did not show at all: `IsSpellKnown(id)` can say "no" when the
+  spell you have is another rank / ID of the same name, and WeakAuras hides cooldowns of unknown spells.
+  Now the spellbook is also searched by the spell's name.
+- A cooldown or recharge of exactly 10 seconds was ignored (a workaround for retail Stealth/Prowl; Rylak's Bite has a 10 sec recharge).
+- Spell cooldowns typed by name (older auras) also use the action button fallback from 0.6.3.
+
+### Added
+- `/wa cd <spell name or id>` prints what the game reports for a spell's cooldown, charges and action button.
+  Please paste its output into bug reports about cooldowns.
+
 ## 0.6.3 – 2026-11-06
 
 ### Fixed

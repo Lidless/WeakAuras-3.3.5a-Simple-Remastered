@@ -855,11 +855,41 @@ end
 ---@param spell string|number
 ---@param pet boolean?
 ---@return boolean result
+-- Simple Remastered / Grimfall: IsSpellKnown(id) can be false for custom spells and talent
+-- abilities whose rank has another id than the one in the tooltip. Then the spellbook is
+-- searched by the spell's name (cached, rebuilt when the spellbook changes).
+local spellbookNames
+local spellbookFrame = CreateFrame("Frame")
+spellbookFrame:RegisterEvent("SPELLS_CHANGED")
+spellbookFrame:RegisterEvent("LEARNED_SPELL_IN_TAB")
+spellbookFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+spellbookFrame:RegisterEvent("UNIT_PET")
+spellbookFrame:SetScript("OnEvent", function() spellbookNames = nil end)
+
+local function spellbookHasName(name, pet)
+  if not spellbookNames then
+    spellbookNames = { spell = {}, pet = {} }
+    for _, book in ipairs({"spell", "pet"}) do
+      for i = 1, 1024 do
+        local n = GetSpellName(i, book)
+        if not n then break end
+        spellbookNames[book][n] = true
+      end
+    end
+  end
+  return spellbookNames[pet and "pet" or "spell"][name] or false
+end
+Private.SpellbookHasName = spellbookHasName
+
 function WeakAuras.IsSpellKnown(spell, pet)
   local id = tonumber(spell)
   if id then
     if id > 0 and id < 2^31 then
-      return IsSpellKnown(id, pet)
+      if IsSpellKnown(id, pet) then
+        return true
+      end
+      local name = GetSpellInfo(id)
+      return name and spellbookHasName(name, pet) or false
     end
     return false
   end
