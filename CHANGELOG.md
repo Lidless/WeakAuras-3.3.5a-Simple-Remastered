@@ -3,6 +3,13 @@
 Based on WeakAuras WotLK 5.22.0 (3.3.5a backport by NoM0Re, tag `5.22.0-39c2aca9`).
 Grimfall & Classless compatible by Lidless.
 
+## 0.6.2 – 2026-11-06
+
+### Fixed
+- Spell cooldowns made with the Quick Setup or the simple Trigger tab now watch the **exact spell ID**.
+  Custom Grimfall spells often have several IDs (ranks) with the same name; matching by name could watch
+  the wrong one, so no cooldown was shown (e.g. Rylak's Bite).
+
 ## 0.6.1 – 2026-11-06
 
 ### Changed

@@ -990,6 +990,7 @@ function OptionsPrivate.GetSimpleTriggerOptions(data)
         local id = resolveSpellId(v)
         if id then
           t.spellName = id
+          if kind == "spellcd" then t.use_exact_spellName = true end
           commit(data, true)
         end
       end,
@@ -1000,6 +1001,7 @@ function OptionsPrivate.GetSimpleTriggerOptions(data)
         OptionsPrivate.OpenPicker(kind == "usable" and OptionsPrivate.PickerCategories.usable or OptionsPrivate.PickerCategories.spells, function(entry)
           if entry.spellId then
             t.spellName = entry.spellId
+            if kind == "spellcd" then t.use_exact_spellName = true end
             commit(data, true)
           end
         end)

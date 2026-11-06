@@ -429,6 +429,8 @@ local function buildTrigger(state)
         type = WeakAuras.GetTriggerCategoryFor("Cooldown Progress (Spell)"),
         event = "Cooldown Progress (Spell)",
         spellName = spellId,
+        -- exact spell ID: custom Grimfall spells often have several IDs (ranks) with the same name
+        use_exact_spellName = true,
         use_genericShowOn = true,
         genericShowOn = state.showOn,
       }
