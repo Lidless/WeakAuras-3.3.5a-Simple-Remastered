@@ -3,6 +3,15 @@
 Based on WeakAuras WotLK 5.22.0 (3.3.5a backport by NoM0Re, tag `5.22.0-39c2aca9`).
 Grimfall & Classless compatible by Lidless.
 
+## 0.6.5 – 2026-11-06
+
+### Fixed
+- **Grimfall charge spells** (e.g. Rylak's Bite): the game reports only the global cooldown for them;
+  Grimfall draws the charge number and the recharge swipe directly on the action button.
+  The addon now reads the button: its charge number becomes the aura's stacks, and the aura counts as
+  "on cooldown" at 0 charges, with the time until the next charge. The spell must be on a visible action bar.
+- `/wa cd` also shows the button's charge text and recharge swipe.
+
 ## 0.6.4 – 2026-11-06
 
 ### Fixed

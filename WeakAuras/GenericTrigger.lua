@@ -3171,6 +3171,93 @@ do
   actionSlotFrame:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
   actionSlotFrame:SetScript("OnEvent", function() actionSlotBySpell = nil end)
 
+  -- Grimfall writes the charge number and the recharge swipe onto the action button itself
+  -- (GetActionCount / GetActionCooldown stay empty). So the buttons are watched:
+  -- the cooldown frame's SetCooldown is hooked and the Count text is read.
+  local actionButtons = {}      -- button frame -> true
+  local buttonCooldowns = {}    -- button frame -> { start, duration }
+  local recheckFrame = CreateFrame("Frame")
+  recheckFrame:Hide()
+  recheckFrame:SetScript("OnUpdate", function(self)
+    self:Hide()
+    if Private.CheckCooldownReady then Private.CheckCooldownReady() end
+  end)
+  local function requestRecheck() recheckFrame:Show() end
+
+  local function watchButton(button)
+    if actionButtons[button] then return end
+    local name = button:GetName()
+    if not name then return end
+    local cooldown = _G[name .. "Cooldown"]
+    local countText = _G[name .. "Count"]
+    if not cooldown or not cooldown.SetCooldown then return end
+    actionButtons[button] = true
+    hooksecurefunc(cooldown, "SetCooldown", function(_, start, duration)
+      buttonCooldowns[button] = { start = start or 0, duration = duration or 0 }
+      requestRecheck()
+    end)
+    if countText and countText.SetText then
+      hooksecurefunc(countText, "SetText", requestRecheck)
+    end
+  end
+
+  local function findButtons()
+    local frame = EnumerateFrames()
+    while frame do
+      if type(frame.action) == "number" and frame.GetName then
+        watchButton(frame)
+      end
+      frame = EnumerateFrames(frame)
+    end
+  end
+  local buttonsFound = false
+
+  -- the buttons currently showing an action slot
+  local function buttonsForSlot(slot)
+    if not buttonsFound then
+      findButtons()
+      buttonsFound = true
+    end
+    local result
+    for button in pairs(actionButtons) do
+      local action = button.action
+      if button.GetAttribute and ActionButton_GetPagedID then
+        local ok, paged = pcall(ActionButton_GetPagedID, button)
+        if ok and paged then action = paged end
+      end
+      if action == slot and button:IsVisible() then
+        result = result or {}
+        tinsert(result, button)
+      end
+    end
+    return result
+  end
+
+  -- charges and recharge as shown on the button: count (number or nil), start, duration
+  local function buttonState(slot)
+    local buttons = buttonsForSlot(slot)
+    if not buttons then return end
+    local count, start, duration
+    local now = GetTime()
+    for _, button in ipairs(buttons) do
+      local countText = _G[button:GetName() .. "Count"]
+      local text = countText and countText:IsShown() and countText:GetText()
+      local n = text and tonumber(text)
+      if n then count = n end
+      local cd = buttonCooldowns[button]
+      if cd and cd.duration > 1.5 and cd.start + cd.duration > now then
+        start, duration = cd.start, cd.duration
+      end
+    end
+    return count, start, duration, #buttons
+  end
+  Private.ActionButtonState = buttonState
+
+  local buttonFinder = CreateFrame("Frame")
+  buttonFinder:RegisterEvent("PLAYER_ENTERING_WORLD")
+  buttonFinder:RegisterEvent("ADDON_LOADED")
+  buttonFinder:SetScript("OnEvent", function() buttonsFound = false end)
+
   local function actionSlotsFor(id)
     if not id then return end
     if not actionSlotBySpell then buildActionSlots() end
@@ -3222,7 +3309,7 @@ do
         p("slot", slot, "| GetActionInfo:", GetActionInfo(slot))
         p("   slot", slot, "| GetActionCount:", GetActionCount(slot), "| GetActionCooldown:", GetActionCooldown(slot))
       end
-      p("used slot:", actionSlotFor(id))
+      p("used slot:", actionSlotFor(id), "| button state (count, start, duration, buttons):", buttonState(actionSlotFor(id)))
       -- what the buttons themselves show (Grimfall may write the charge number there itself)
       for _, slot in ipairs(slots) do
         local frame = EnumerateFrames()
@@ -3230,8 +3317,10 @@ do
           if frame.action == slot and frame.GetName and frame:GetName() then
             local countText = _G[frame:GetName() .. "Count"]
             local cooldown = _G[frame:GetName() .. "Cooldown"]
+            local hooked = buttonCooldowns[frame]
             p("   button", frame:GetName(), "| shown count:", countText and countText:GetText(),
-              "| cooldown frame shown:", cooldown and cooldown:IsShown())
+              "| cooldown frame shown:", cooldown and cooldown:IsShown(),
+              "| last swipe:", hooked and hooked.start, hooked and hooked.duration)
           end
           frame = EnumerateFrames(frame)
         end
@@ -3320,6 +3409,24 @@ do
         startTime, duration = 0, 0
       elseif actionCount == 0 and durationCooldown and durationCooldown > 0 then
         count = 0
+      end
+    end
+    -- Grimfall charges drawn on the button (count text + recharge swipe)
+    if actionSlot then
+      local shownCount, bStart, bDuration = buttonState(actionSlot)
+      if shownCount then
+        count = shownCount
+        if bStart then
+          startTimeCooldown, durationCooldown = bStart, bDuration
+        end
+        if shownCount > 0 then
+          startTime, duration = 0, 0          -- a charge is left: ready
+        elseif bStart then
+          startTime, duration = bStart, bDuration  -- 0 charges: on cooldown until the next charge
+        end
+      elseif bStart and (not duration or duration <= 1.5) then
+        startTime, duration = bStart, bDuration
+        startTimeCooldown, durationCooldown = bStart, bDuration
       end
     end
 
