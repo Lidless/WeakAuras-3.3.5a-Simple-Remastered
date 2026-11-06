@@ -3223,8 +3223,33 @@ do
         p("   slot", slot, "| GetActionCount:", GetActionCount(slot), "| GetActionCooldown:", GetActionCooldown(slot))
       end
       p("used slot:", actionSlotFor(id))
+      -- what the buttons themselves show (Grimfall may write the charge number there itself)
+      for _, slot in ipairs(slots) do
+        local frame = EnumerateFrames()
+        while frame do
+          if frame.action == slot and frame.GetName and frame:GetName() then
+            local countText = _G[frame:GetName() .. "Count"]
+            local cooldown = _G[frame:GetName() .. "Cooldown"]
+            p("   button", frame:GetName(), "| shown count:", countText and countText:GetText(),
+              "| cooldown frame shown:", cooldown and cooldown:IsShown())
+          end
+          frame = EnumerateFrames(frame)
+        end
+      end
     else
       p("not found on the action bars (slots 1-144)")
+    end
+    -- auras on the player with the same name (charges are sometimes a buff with stacks)
+    if name then
+      for _, filter in ipairs({"HELPFUL", "HARMFUL"}) do
+        for i = 1, 40 do
+          local auraName, _, _, stacks, _, auraDuration, expirationTime, _, _, _, auraId = UnitAura("player", i, filter)
+          if not auraName then break end
+          if auraName == name or auraName:lower():find("charge") then
+            p("aura on you:", filter, auraName, "| id", auraId, "| stacks", stacks, "| duration", auraDuration, "| expires", expirationTime)
+          end
+        end
+      end
     end
     local startTime, duration, _, startCd, durationCd, _, count, paused = WeakAuras.GetSpellCooldownUnified(id, 0)
     p("WA result: start", startTime, "dur", duration, "| recharge", startCd, durationCd, "| charges", count, "| paused", paused, "| now", GetTime())
