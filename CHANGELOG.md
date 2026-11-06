@@ -3,6 +3,16 @@
 Based on WeakAuras WotLK 5.22.0 (3.3.5a backport by NoM0Re, tag `5.22.0-39c2aca9`).
 Grimfall & Classless compatible by Lidless.
 
+## 0.6.3 – 2026-11-06
+
+### Fixed
+- **Spells with charges** (e.g. Rylak's Bite: 2 charges, 10 sec recharge). The 3.3.5 client has no charge API,
+  so the spell's own cooldown can stay empty. If the spell is on an action bar, its cooldown and charge number
+  are now read from the action button:
+  - the charge number is shown as **stacks** (use it in the Rules tab or as text);
+  - *Only while on cooldown* means **0 charges left**; while at least one charge is left, the spell counts as ready.
+  The spell must be on one of your action bars for this to work.
+
 ## 0.6.2 – 2026-11-06
 
 ### Fixed

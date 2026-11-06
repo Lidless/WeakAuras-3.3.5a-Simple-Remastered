@@ -2861,6 +2861,7 @@ do
     cdReadyFrame:RegisterEvent("CHARACTER_POINTS_CHANGED");
     cdReadyFrame:RegisterEvent("SPELL_UPDATE_COOLDOWN");
     cdReadyFrame:RegisterEvent("SPELL_UPDATE_USABLE")
+    cdReadyFrame:RegisterEvent("ACTIONBAR_UPDATE_STATE")
     cdReadyFrame:RegisterEvent("UNIT_SPELLCAST_SENT");
     cdReadyFrame:RegisterEvent("BAG_UPDATE_COOLDOWN");
     cdReadyFrame:RegisterEvent("UNIT_INVENTORY_CHANGED")
@@ -2906,9 +2907,11 @@ do
           Private.CheckItemSlotCooldowns()
           mark_ACTIONBAR_UPDATE_COOLDOWN = nil
         end
-      elseif event == "SPELL_UPDATE_USABLE" then
+      elseif event == "SPELL_UPDATE_USABLE" or event == "ACTIONBAR_UPDATE_STATE" then
         Private.CheckItemCooldowns()
         Private.CheckItemSlotCooldowns()
+        -- charges shown on the action button can change without a cooldown event
+        Private.CheckCooldownReady()
       elseif event == "SPELL_UPDATE_COOLDOWN" or event == "RUNE_POWER_UPDATE"
         or event == "PLAYER_TALENT_UPDATE"
         or event == "CHARACTER_POINTS_CHANGED" or event == "RUNE_TYPE_UPDATE"
@@ -3136,8 +3139,56 @@ do
 
   ---@param id string
   ---@param runeDuration? number
+  -- Simple Remastered / Grimfall: spells with charges (e.g. Rylak's Bite: "2 Charges, 10 sec recharge").
+  -- The 3.3.5 client has no charge API; Grimfall shows the charges and their cooldown on the action button,
+  -- but GetSpellCooldown(spellId) can stay empty. So if a spell sits on an action bar, its button is read too.
+  local actionSlotBySpell
+  local function buildActionSlots()
+    actionSlotBySpell = {}
+    for slot = 1, 144 do
+      local actionType, id, subType, spellId = GetActionInfo(slot)
+      if actionType == "spell" then
+        -- 3.3.5: id is the spellbook index, the 4th value is the spell id
+        if spellId and not actionSlotBySpell[spellId] then
+          actionSlotBySpell[spellId] = slot
+        end
+        -- also by name, so other ranks / ids of the same spell find the button
+        local name = (spellId and GetSpellInfo(spellId)) or (id and subType and GetSpellName(id, subType))
+        if name and not actionSlotBySpell[name] then
+          actionSlotBySpell[name] = slot
+        end
+      end
+    end
+  end
+  local actionSlotFrame = CreateFrame("Frame")
+  actionSlotFrame:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
+  actionSlotFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+  actionSlotFrame:RegisterEvent("SPELLS_CHANGED")
+  actionSlotFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
+  actionSlotFrame:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
+  actionSlotFrame:SetScript("OnEvent", function() actionSlotBySpell = nil end)
+
+  local function actionSlotFor(id)
+    if not actionSlotBySpell then buildActionSlots() end
+    local slot = actionSlotBySpell[id]
+    if not slot then
+      local name = GetSpellInfo(id)
+      slot = name and actionSlotBySpell[name]
+    end
+    return slot
+  end
+  Private.ActionSlotForSpell = actionSlotFor
+
   function WeakAuras.GetSpellCooldownUnified(id, runeDuration)
     local startTimeCooldown, durationCooldown, enabled = GetSpellCooldown(id)
+    -- Grimfall charges: take the cooldown shown on the action button if the spell has none
+    local actionSlot = type(id) == "number" and actionSlotFor(id)
+    if actionSlot and (not durationCooldown or durationCooldown == 0) then
+      local aStart, aDuration, aEnabled = GetActionCooldown(actionSlot)
+      if aDuration and aDuration > 0 then
+        startTimeCooldown, durationCooldown, enabled = aStart, aDuration, aEnabled
+      end
+    end
     enabled = enabled == 1 and true or false
 
     startTimeCooldown = startTimeCooldown or 0;
@@ -3181,6 +3232,18 @@ do
     local startTime, duration = startTimeCooldown, durationCooldown
 
     local count = GetSpellCount(id)
+    -- Grimfall charges: the number on the action button
+    if actionSlot and (not count or count == 0) then
+      local actionCount = GetActionCount(actionSlot)
+      if actionCount and actionCount > 0 then
+        count = actionCount
+        -- charges left: the spell can be cast, so it is not "on cooldown";
+        -- the recharge time stays in startTimeCooldown / durationCooldown
+        startTime, duration = 0, 0
+      elseif actionCount == 0 and durationCooldown and durationCooldown > 0 then
+        count = 0
+      end
+    end
 
     return startTime, duration, unifiedCooldownBecauseRune,
            startTimeCooldown, durationCooldown, cooldownBecauseRune,
