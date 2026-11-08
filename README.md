@@ -116,6 +116,7 @@ Next to every name field there is a **Choose...** button. It opens a list with i
   get your procs) and open Choose... again. Each character has its own list.
   Spells and items are different: they are read from your spellbook and bags right away.
 - Picked auras are matched by their **exact spell ID**, so two custom auras with the same name don't get mixed up.
+  When a buff gets a new ID because you learned a higher rank, your auras pick up the new ID by themselves.
 - **Right click** an entry to move it to another category (if a proc was sorted wrong) or to remove it.
 - **Not in the list?** Add it by hand at the bottom of the window (name or spell ID + category).
 

@@ -131,6 +131,8 @@ local function record(unit, filter, index)
   if not entry then
     entry = { name = name, icon = icon, spellId = spellId, seen = 0 }
     list[key] = entry
+    -- a new id for a known name (new rank): auras watching the old id follow it
+    if spellId then scheduleAutoUpdate() end
   end
   entry.icon = icon or entry.icon
   entry.name = name
@@ -264,9 +266,69 @@ local function boundToMe(data)
   return key and load.characters and load.characters.multi and load.characters.multi[key] or false
 end
 
+-- Grimfall ranks: the same buff gets a new spell id when you learn a higher rank, and auras that
+-- match by exact spell id would stop seeing it. Every learned id is grouped by name + icon; an aura
+-- watching one id of a group also gets the other ids of that group.
+local function rankGroups()
+  local list = store()
+  if not list then return end
+  local groups, byId = {}, {}
+  for key, entry in pairs(list) do
+    if type(key) == "number" and entry.name then
+      local groupKey = entry.name .. "|" .. tostring(entry.icon)
+      groups[groupKey] = groups[groupKey] or {}
+      tinsert(groups[groupKey], key)
+      byId[key] = groupKey
+    end
+  end
+  return groups, byId
+end
+
+function Learning.FollowRanks()
+  local db = Private.db
+  if not db or not db.displays then return end
+  local groups, byId = rankGroups()
+  if not groups then return end
+  for _, data in pairs(db.displays) do
+    if not data.simpleAuto and data.triggers then
+      local changed = false
+      for _, triggerData in ipairs(data.triggers) do
+        local trigger = triggerData.trigger
+        if trigger and trigger.type == "aura2" and trigger.useExactSpellId and type(trigger.auraspellids) == "table" then
+          local have = {}
+          for _, id in ipairs(trigger.auraspellids) do have[tonumber(id) or id] = true end
+          local toAdd = {}
+          for _, id in ipairs(trigger.auraspellids) do
+            local groupKey = byId[tonumber(id)]
+            if groupKey then
+              for _, other in ipairs(groups[groupKey]) do
+                if not have[other] then
+                  have[other] = true
+                  tinsert(toAdd, other)
+                end
+              end
+            end
+          end
+          if #toAdd > 0 then
+            sort(toAdd)
+            for _, id in ipairs(toAdd) do
+              tinsert(trigger.auraspellids, tostring(id))
+            end
+            changed = true
+          end
+        end
+      end
+      if changed then
+        WeakAuras.Add(data)
+      end
+    end
+  end
+end
+
 function Learning.UpdateAutoAuras()
   local db = Private.db
   if not db or not db.displays then return end
+  Learning.FollowRanks()
   local ids
   for _, data in pairs(db.displays) do
     if data.simpleAuto == "procs" and boundToMe(data) and data.triggers and data.triggers[1] then

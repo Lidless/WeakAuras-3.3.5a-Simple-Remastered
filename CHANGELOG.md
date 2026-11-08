@@ -3,6 +3,14 @@
 Based on WeakAuras WotLK 5.22.0 (3.3.5a backport by NoM0Re, tag `5.22.0-39c2aca9`).
 Grimfall & Classless compatible by Lidless.
 
+## 0.6.6 – 2026-11-08
+
+### Fixed
+- **Auras follow new ranks.** A Grimfall buff gets a new spell ID when you learn a higher rank, and auras that
+  match by exact spell ID stopped seeing it (a "missing" aura then showed although the buff was up).
+  When the addon learns a new ID with the same name and icon, it is added to every aura that watches
+  one of the old IDs. Different buffs that only share a name (different icon) are still kept apart.
+
 ## 0.6.5 – 2026-11-06
 
 ### Fixed
