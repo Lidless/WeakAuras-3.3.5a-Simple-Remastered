@@ -197,7 +197,7 @@ function Private.PrintHelp()
   print(L["/wa pprint - Show the results from the most recent profiling"])
   print(L["/wa repair - Repair tool"])
   print("/wa cd <spell name or id> - show what the game reports for a spell cooldown (for bug reports)")
-  print(L["If you require additional assistance, please open an issue on the WeakAuras Simple Remastered GitHub page: https://github.com/Lidless/WeakAuras-3.3.5a-Simple-Remastered/issues"])
+  print(L["If you require additional assistance, please open an issue on the WeakAuras Simple Remastered GitHub page: https://github.com/Lidless-Grimfall/WeakAuras-3.3.5a-Simple-Remastered/issues"])
 end
 
 SLASH_WEAKAURAS1, SLASH_WEAKAURAS2 = "/weakauras", "/wa";

@@ -19,7 +19,7 @@ guided setup that works for every class, race and build.
 - **Per-character auras:** all auras are stored for the whole account, but a new aura only loads on the
   character that created it. One tick in the *When* tab extends it to other characters.
 - **Manual role:** choose Tank / DPS / Healer per character (default DPS, with a reminder until you choose).
-  If [Threat Plates (Grimfall edition)](https://github.com/Lidless/TidyPlates_ThreatPlates-3.3.5a-Remastered_Grimfall)
+  If [Threat Plates (Grimfall edition)](https://github.com/Lidless-Grimfall/TidyPlates_ThreatPlates-3.3.5a-Remastered_Grimfall)
   is installed, the role is **kept in sync** with it in both directions.
 - Custom class and race tokens are accepted everywhere.
 - Old auras that used the class condition are moved to the characters of that class the first time
@@ -179,7 +179,7 @@ Switching between the two loads the other, older copy. This affects every addon 
 
 ## Bugs and feedback
 
-Please open an [issue](https://github.com/Lidless/WeakAuras-3.3.5a-Simple-Remastered/issues).
+Please open an [issue](https://github.com/Lidless-Grimfall/WeakAuras-3.3.5a-Simple-Remastered/issues).
 
 ## Credits
 

@@ -558,7 +558,7 @@ function OptionsPrivate.CreateFrame()
   thanksButton:SetFrameLevel(tipFrame:GetFrameLevel() + 1)
   thanksButton:SetPoint("LEFT", tipFrame, "LEFT")
 
-  local reportbugButton = addFooter(L["Found a Bug?"], [[Interface\AddOns\WeakAuras\Media\Textures\bug_report.tga]], "https://github.com/Lidless/WeakAuras-3.3.5a-Simple-Remastered/issues",
+  local reportbugButton = addFooter(L["Found a Bug?"], [[Interface\AddOns\WeakAuras\Media\Textures\bug_report.tga]], "https://github.com/Lidless-Grimfall/WeakAuras-3.3.5a-Simple-Remastered/issues",
             L["Report bugs on the WeakAuras Simple Remastered issue tracker."], nil, nil, true)
   reportbugButton:SetParent(tipFrame)
   reportbugButton:SetFrameLevel(tipFrame:GetFrameLevel() + 1)
